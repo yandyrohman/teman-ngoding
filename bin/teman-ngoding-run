@@ -20,6 +20,22 @@ esac
 
 cd "$HOME" 2>/dev/null || cd /
 
+# DeepSeek Harness belum terpasang: tawarkan pasang versi terbaru dari npm
+if [ "$agent" = deepseek ] && ! PATH="/usr/local/bin:/usr/bin:/bin" command -v dsh >/dev/null; then
+    echo "🐋 DeepSeek Harness (dsh) belum terpasang."
+    read -rp "Pasang sekarang (sudo npm install -g @deepseek-ai/dsh@latest)? [Y/n] " answer
+    case "$answer" in
+        [nN]*) exit 0 ;;
+    esac
+    if ! sudo npm install -g @deepseek-ai/dsh@latest; then
+        echo
+        read -rp "Gagal memasang DeepSeek Harness. Tekan Enter untuk menutup..."
+        exit 1
+    fi
+    sudo systemctl start teman-ngoding-status.service 2>/dev/null
+    echo
+fi
+
 # API key (kalau dipilih lewat "Ganti Akun"): Gemini di /root/.gemini/.env,
 # DeepSeek di /root/.deepseek/.env (DEEPSEEK_API_KEY)
 with_env=()
