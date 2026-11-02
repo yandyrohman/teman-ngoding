@@ -1,6 +1,6 @@
 #!/bin/bash
 # Dipanggil oleh aplikasi "Teman Ngoding" (dijalankan sebagai user desktop).
-#   teman-ngoding-launch [claude|gemini|codex|opencode]
+#   teman-ngoding-launch [claude|gemini|codex|opencode|deepseek]
 # - Kalau maskot sedang mati / sedang pamit: nyalakan lagi.
 # - Kalau sedang hidup: buka CLI karakter tersebut (root) di terminal. Tanpa
 #   argumen, dipakai karakter yang sedang aktif di maskot (default: claude).
@@ -37,6 +37,7 @@ case "$agent" in
     gemini) title="Antigravity CLI" ;;
     codex) title="Codex CLI" ;;
     opencode) title="OpenCode" ;;
+    deepseek) title="DeepSeek Harness" ;;
     *) agent=claude; title="Claude Code" ;;
 esac
 

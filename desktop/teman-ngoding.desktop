@@ -2,14 +2,14 @@
 Type=Application
 Name=Teman Ngoding
 GenericName=Teman ngoding AI (root)
-Comment=Buka Claude Code, Antigravity CLI, Codex, atau OpenCode sebagai root bersama maskotnya
+Comment=Buka Claude Code, Antigravity CLI, Codex, OpenCode, atau DeepSeek sebagai root bersama maskotnya
 Exec=/usr/local/bin/teman-ngoding-launch
 Icon=teman-ngoding
 Terminal=false
 Categories=Development;
-Keywords=claude;gemini;antigravity;agy;codex;opencode;ai;buddy;ngoding;sudo;root;
+Keywords=claude;gemini;antigravity;agy;codex;opencode;deepseek;dsh;ai;buddy;ngoding;sudo;root;
 StartupNotify=false
-Actions=claude;gemini;codex;opencode;
+Actions=claude;gemini;codex;opencode;deepseek;
 
 [Desktop Action claude]
 Name=Buka Claude Code
@@ -26,3 +26,7 @@ Exec=/usr/local/bin/teman-ngoding-launch codex
 [Desktop Action opencode]
 Name=Buka OpenCode
 Exec=/usr/local/bin/teman-ngoding-launch opencode
+
+[Desktop Action deepseek]
+Name=Buka DeepSeek Harness
+Exec=/usr/local/bin/teman-ngoding-launch deepseek

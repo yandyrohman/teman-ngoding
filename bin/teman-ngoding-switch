@@ -1,6 +1,6 @@
 #!/bin/bash
 # Ganti akun CLI (versi root yang dipakai Teman Ngoding).
-#   teman-ngoding-switch [claude|gemini|codex|opencode]
+#   teman-ngoding-switch [claude|gemini|codex|opencode|deepseek]
 # Halaman login dibuka di Chrome milik user, lalu status Teman Ngoding diperbarui.
 
 agent="${1:-claude}"
@@ -104,6 +104,19 @@ case "$agent" in
         status=$?
         echo
         as_root opencode auth list
+        ;;
+    deepseek)
+        echo "🔁 Ganti API key DeepSeek Harness (Teman Ngoding)"
+        echo "   Buat key di https://platform.deepseek.com/api_keys"
+        echo "   (Key yang disimpan lewat Settings → Models di Web UI dsh tetap didahulukan.)"
+        echo
+        if ask_key; then
+            printf 'DEEPSEEK_API_KEY=%s\n' "$key" | as_root bash -c 'umask 077; mkdir -p /root/.deepseek; cat > /root/.deepseek/.env'
+            echo "✅ API key disimpan di /root/.deepseek/.env"
+            status=0
+        else
+            status=1
+        fi
         ;;
     *)
         echo "Karakter tidak dikenal: $agent" >&2

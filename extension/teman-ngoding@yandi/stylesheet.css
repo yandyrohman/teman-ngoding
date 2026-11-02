@@ -445,6 +445,7 @@
 .ngoding-chip-gemini.ngoding-chip-active { border-color: #7b7fe0; background-color: #e8eafc; }
 .ngoding-chip-codex.ngoding-chip-active { border-color: #111111; background-color: #ececea; }
 .ngoding-chip-opencode.ngoding-chip-active { border-color: #16a37b; background-color: #dcf5ec; }
+.ngoding-chip-deepseek.ngoding-chip-active { border-color: #4d6bfe; background-color: #e3e9ff; }
 
 /* Aksen menu: gemini */
 .ngoding-theme-gemini .popup-menu-item:hover,
@@ -500,3 +501,20 @@
 }
 .ngoding-theme-opencode .ngoding-tile:active, .ngoding-theme-opencode .ngoding-ibtn:active { background-color: #c4eedf; box-shadow: none; }
 
+/* Aksen menu: deepseek */
+.ngoding-theme-deepseek .popup-menu-item:hover,
+.ngoding-theme-deepseek .popup-menu-item:focus { background-color: rgba(77, 107, 254, 0.16); }
+.ngoding-theme-deepseek .ngoding-status-title,
+.ngoding-theme-deepseek .ngoding-switch-item,
+.ngoding-theme-deepseek .ngoding-section { color: #4d6bfe; }
+.ngoding-theme-deepseek .ngoding-status-account,
+.ngoding-theme-deepseek .ngoding-home-stats { background-color: rgba(77, 107, 254, 0.12); }
+.ngoding-theme-deepseek .ngoding-status-plan { background-color: #4d6bfe; }
+.ngoding-theme-deepseek .ngoding-tile:hover, .ngoding-theme-deepseek .ngoding-tile:focus,
+.ngoding-theme-deepseek .ngoding-ibtn:hover, .ngoding-theme-deepseek .ngoding-ibtn:focus,
+.ngoding-theme-deepseek .ngoding-swap:hover, .ngoding-theme-deepseek .ngoding-swap:focus, .ngoding-theme-deepseek .ngoding-swap:checked {
+  background-color: #e3e9ff;
+  border-color: #4d6bfe;
+  box-shadow: 0 3px 0 0 #4d6bfe;
+}
+.ngoding-theme-deepseek .ngoding-tile:active, .ngoding-theme-deepseek .ngoding-ibtn:active { background-color: #cdd7ff; box-shadow: none; }

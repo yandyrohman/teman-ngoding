@@ -1,5 +1,5 @@
 // Teman Ngoding: maskot piksel yang hidup di desktop. Karakternya bisa diganti
-// (Claude, Gemini, Codex, OpenCode); tiap karakter membuka CLI-nya sendiri.
+// (Claude, Gemini, Codex, OpenCode, DeepSeek); tiap karakter membuka CLI-nya sendiri.
 // Semua karakter memakai kerangka yang sama (badan 12×5, lengan, 4 kaki, mata,
 // hiasan kepala), jadi semua animasi & adegan berlaku untuk semuanya.
 //
@@ -189,6 +189,39 @@ const CHARACTERS = {
             'Dark mode is my default 🌚',
         ],
         sad: ['Kurung kurawalku kehilangan pasangan... 🥺'],
+    },
+    deepseek: {
+        name: 'DeepSeek',
+        cli: 'DeepSeek Harness',
+        logo: '🐋',
+        url: 'https://chat.deepseek.com',
+        site: 'chat.deepseek.com',
+        body: ['#5B78FF', '#3B54D6'],
+        eye: '#0B1340',
+        // perut putih ala paus
+        deco: [[0, 4, 12, 1, 'rgba(255, 255, 255, 0.22)']],
+        // semburan air paus
+        hat: [6, -0.3, 4, 3.3, [
+            [1.7, 1.5, 0.6, 1.8, '#7FA0FF'],
+            [0.85, 0.75, 0.5, 0.9, '#A9C0FF', -30],
+            [2.65, 0.75, 0.5, 0.9, '#A9C0FF', 30],
+            [1.75, 0, 0.5, 1.3, '#D6E2FF'],
+            [0.15, 1.35, 0.45, 0.45, '#D6E2FF'],
+            [3.4, 1.35, 0.45, 0.45, '#D6E2FF'],
+        ]],
+        color: 'biru paus',
+        square: '🟦',
+        hatName: 'Semburan airku',
+        intro: ['DeepSeek muncul ke permukaan 🐋', 'Halo! DeepSeek siap menyelam 🌊'],
+        phrases: [
+            'Klik aku buat manggil DeepSeek 🐋',
+            'Mikirnya dalem, kayak laut 🌊',
+            'Semburan di kepalaku tanda lagi mikir 💦',
+            'Konteks sejuta token, lega kan? 📚',
+            'Murah meriah tapi tetap pintar 🐋',
+            'Aku buka di browser ya, bukan terminal 🌐',
+        ],
+        sad: ['Semburanku kering... 🥺'],
     },
 };
 const DEFAULT_CHARACTER = 'claude';

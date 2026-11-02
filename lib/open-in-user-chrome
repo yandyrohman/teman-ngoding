@@ -1,5 +1,5 @@
 #!/bin/bash
-# Dipanggil (sebagai root) oleh CLI (claude, gemini, codex, opencode) untuk membuka URL login.
+# Dipanggil (sebagai root) oleh CLI (claude, gemini, codex, opencode, dsh) untuk membuka URL login.
 # Membuka URL di Chrome milik user desktop, bukan sebagai root.
 url="$1"
 user="${TEMAN_NGODING_USER:-yandi}"

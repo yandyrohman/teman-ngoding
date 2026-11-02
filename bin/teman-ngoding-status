@@ -2,7 +2,7 @@
 """Kumpulkan status akun CLI AI untuk Teman Ngoding.
 
 - Claude Code: info akun + sisa limit (accounts, usage)
-- Antigravity CLI (Gemini), Codex CLI, OpenCode: terpasang/tidak, versi, info akun (agents)
+- Antigravity CLI (Gemini), Codex CLI, OpenCode, DeepSeek Harness (dsh): terpasang/tidak, versi, info akun (agents)
 
 Berjalan sebagai root lewat teman-ngoding-status.service. Token & API key hanya
 dibaca di sini dan TIDAK ditulis ke file output; output hanya berisi info akun
@@ -151,10 +151,26 @@ def opencode_account():
     return {'auth': f'{len(providers)} provider', 'providers': providers}, None
 
 
+def deepseek_account():
+    """DeepSeek Harness: API key di /root/.deepseek/.env atau yang disimpan lewat Web UI."""
+    try:
+        with open('/root/.deepseek/.env') as f:
+            if any(line.startswith('DEEPSEEK_API_KEY=') and len(line.strip()) > 25 for line in f):
+                return {'auth': 'API key'}, None
+    except OSError:
+        pass
+    # Key dari Settings → Models disimpan di $DSH_HOME/.credentials.yaml (isinya tidak dibaca)
+    for home in ('/root/.dsh', '/root/.deepseek-harness', '/root/.config/dsh'):
+        if os.path.isfile(os.path.join(home, '.credentials.yaml')):
+            return {'auth': 'API key (Web UI)'}, None
+    return None, 'API key belum diisi, tekan "Ganti Akun".'
+
+
 AGENTS = {
     'gemini': ('agy', gemini_account),
     'codex': ('codex', codex_account),
     'opencode': ('opencode', opencode_account),
+    'deepseek': ('dsh', deepseek_account),
 }
 
 

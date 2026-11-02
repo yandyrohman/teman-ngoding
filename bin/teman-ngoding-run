@@ -1,5 +1,7 @@
 #!/bin/bash
-# Jalankan CLI AI sebagai root: teman-ngoding-run [claude|gemini|codex|opencode] [argumen...]
+# Jalankan CLI AI sebagai root: teman-ngoding-run [claude|gemini|codex|opencode|deepseek] [argumen...]
+# Karakter DeepSeek memakai DeepSeek Harness (dsh): `dsh web` menyalakan server lokal
+# lalu membuka Web UI-nya di Chrome; jendela terminal ini menjaga servernya tetap hidup.
 # Karakter Gemini memakai Antigravity CLI (agy); Gemini CLI tidak lagi menerima login akun Google pribadi.
 # Dipakai oleh "Teman Ngoding" (lewat teman-ngoding-launch). Halaman login yang
 # dibuka CLI diarahkan ke Chrome milik user (bukan root) lewat open-in-user-chrome.
@@ -12,14 +14,21 @@ case "$agent" in
     gemini) bin=/root/.local/bin/agy; name="Antigravity CLI" ;;
     codex) bin=codex; name="Codex CLI" ;;
     opencode) bin=opencode; name="OpenCode" ;;
+    deepseek) bin=dsh; name="DeepSeek Harness"; [ $# -eq 0 ] && set -- web ;;
     *) echo "Karakter tidak dikenal: $agent" >&2; exit 2 ;;
 esac
 
 cd "$HOME" 2>/dev/null || cd /
 
-# API key Gemini (kalau dipilih lewat "Ganti Akun") disimpan di /root/.gemini/.env
+# API key (kalau dipilih lewat "Ganti Akun"): Gemini di /root/.gemini/.env,
+# DeepSeek di /root/.deepseek/.env (DEEPSEEK_API_KEY)
 with_env=()
-[ "$agent" = gemini ] && with_env=(bash -c 'set -a; [ -r /root/.gemini/.env ] && . /root/.gemini/.env; set +a; exec "$0" "$@"')
+case "$agent" in
+    gemini) envfile=/root/.gemini/.env ;;
+    deepseek) envfile=/root/.deepseek/.env ;;
+    *) envfile= ;;
+esac
+[ -n "$envfile" ] && with_env=(bash -c 'set -a; [ -r "$ENVFILE" ] && . "$ENVFILE"; set +a; exec "$0" "$@"')
 
 sudo env \
     IS_SANDBOX=1 \
@@ -30,6 +39,7 @@ sudo env \
     WAYLAND_DISPLAY="$WAYLAND_DISPLAY" DISPLAY="$DISPLAY" \
     COLORTERM="${COLORTERM:-truecolor}" \
     TERM="${TERM:-xterm-256color}" \
+    ENVFILE="$envfile" \
     "${with_env[@]}" "$bin" "$@"
 status=$?
 

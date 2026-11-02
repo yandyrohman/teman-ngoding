@@ -10,6 +10,7 @@ diganti lewat tombol kecil **⇄** di kartu menu:
 | **Gemini** | Gradasi biru-ungu dengan bintang ✦ | Antigravity CLI (`agy`) |
 | **Codex** | Putih dengan layar terminal `>_` di kepala | Codex CLI |
 | **OpenCode** | Abu gelap dengan kurung kurawal `{ }` | OpenCode |
+| **DeepSeek** | Paus biru dengan semburan air 🐋 | DeepSeek Harness (`dsh web`, Web UI di Chrome) |
 
 Semua karakter memakai kerangka yang sama, jadi semua animasi, adegan, dan interaksi
 berlaku untuk semuanya. Pilihan karakter disimpan di `~/.config/teman-ngoding.json`.
@@ -21,7 +22,7 @@ Kartu "Akun Saya" menampilkan akun CLI karakter aktif; sisa limit hanya tersedia
 |---|---|---|
 | `extension/teman-ngoding@yandi/` | Ekstensi GNOME Shell (`buddy.js` = maskot & karakter, `extension.js` = pemuat) | `~/.local/share/gnome-shell/extensions/` |
 | `bin/teman-ngoding-launch` | Dipanggil ikon aplikasi: nyalakan maskot / buka CLI karakter aktif | `/usr/local/bin/` |
-| `bin/teman-ngoding-run` | Jalankan `claude` / `agy` / `codex` / `opencode` sebagai root | `/usr/local/bin/` |
+| `bin/teman-ngoding-run` | Jalankan `claude` / `agy` / `codex` / `opencode` / `dsh` sebagai root | `/usr/local/bin/` |
 | `bin/teman-ngoding-switch` | Ganti akun CLI (login via Chrome user, atau API key) | `/usr/local/bin/` |
 | `bin/teman-ngoding-status` | Ambil info akun + limit → `/run/teman-ngoding/status.json` | `/usr/local/bin/` |
 | `lib/open-in-user-chrome` | Buka URL login di Chrome milik user (bukan root) | `/usr/local/lib/teman-ngoding/` |
@@ -39,6 +40,7 @@ Kartu "Akun Saya" menampilkan akun CLI karakter aktif; sisa limit hanya tersedia
     `sudo bash -c 'curl -fsSL https://antigravity.google/cli/install.sh | bash'`
   - Codex CLI: `sudo npm install -g @openai/codex`
   - OpenCode: `sudo npm install -g opencode-ai`
+  - DeepSeek Harness: `sudo npm install -g @deepseek-ai/dsh@latest`
 
 ## Pasang
 
@@ -63,6 +65,10 @@ Buka kartu **Akun Saya → Ganti Akun** pada karakter yang aktif:
   Gemini CLI lama sudah ditolak Google untuk akun pribadi ("This client is no longer supported…").
 - **Codex**: akun ChatGPT (`codex login`) atau OpenAI API key
 - **OpenCode**: `opencode auth login` (pilih provider)
+- **DeepSeek**: API key dari [platform.deepseek.com](https://platform.deepseek.com/api_keys), disimpan sebagai
+  `DEEPSEEK_API_KEY` di `/root/.deepseek/.env`. DeepSeek Harness tidak punya TUI: klik maskot menyalakan
+  `dsh web` di terminal (jangan ditutup selama dipakai) dan membuka Web UI `http://127.0.0.1:3080` di Chrome.
+  Key yang disimpan lewat **Settings → Models** di Web UI lebih diutamakan daripada `.env`.
 
 ## Mengembangkan
 

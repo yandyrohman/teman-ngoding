@@ -4,7 +4,7 @@ Panduan untuk Claude Code saat bekerja di repo ini. Pemilik repo berbahasa Indon
 
 ## Apa ini
 
-Teman Ngoding = ekstensi GNOME Shell (maskot piksel di desktop; karakter Claude/Gemini/Codex/OpenCode)
+Teman Ngoding = ekstensi GNOME Shell (maskot piksel di desktop; karakter Claude/Gemini/Codex/OpenCode/DeepSeek)
 + beberapa script pendukung untuk membuka CLI AI sebagai root dan menampilkan info akun/limit. Tidak ada proses build;
 semua file disalin apa adanya ke lokasi sistem.
 
@@ -16,7 +16,7 @@ semua file disalin apa adanya ke lokasi sistem.
    which ptyxis google-chrome python3 sudo gnome-extensions
    sudo test -x /root/.local/bin/claude && echo ok   # Claude Code untuk root
    sudo test -x /root/.local/bin/agy && echo ok      # Antigravity CLI untuk karakter Gemini (opsional)
-   which codex opencode                              # CLI lain (opsional, npm global)
+   which codex opencode dsh                          # CLI lain (opsional, npm global; dsh = @deepseek-ai/dsh)
    ```
    - Versi GNOME beda → tambahkan versinya ke `shell-version` di `metadata.json` (tanya user dulu).
    - Claude Code root belum ada → pasang dengan `sudo bash -c 'curl -fsSL https://claude.ai/install.sh | bash'`, lalu login lewat `bin/teman-ngoding-switch claude`.
@@ -49,7 +49,7 @@ semua file disalin apa adanya ke lokasi sistem.
   `install.sh`, dan nama folder. Kalau diganti, ganti di semua tempat.
 - `buddy.js` membaca `accounts.root` / `accounts.yandi` dari `status.json` (Claude), jadi untuk user lain
   akun non-root tidak tampil sebagai cadangan. Ini bukan masalah selama Claude Code root sudah login.
-- Karakter didefinisikan di `CHARACTERS` (`buddy.js`). Id karakter (`claude`, `gemini`, `codex`, `opencode`)
+- Karakter didefinisikan di `CHARACTERS` (`buddy.js`). Id karakter (`claude`, `gemini`, `codex`, `opencode`, `deepseek`)
   juga dipakai di `case` pada `bin/teman-ngoding-{run,launch,switch}`, di `AGENTS` pada `teman-ngoding-status`,
   dan di kelas CSS `ngoding-theme-<id>` / `ngoding-chip-<id>`. Tambah karakter = ubah semua tempat itu.
 - Sisa limit (dan maskot tidur saat limit habis) hanya untuk Claude; karakter lain hanya menampilkan info akun.
