@@ -25,9 +25,20 @@ if [ -z "$agent" ]; then
     elif [ -e "$FLAG" ] || [ "$state" != "ACTIVE" ]; then
         # kalau masih dalam animasi pamit, matikan dulu lalu nyalakan lagi
         [ "$state" = "ACTIVE" ] && gnome-extensions disable "$UUID"
-        if gnome-extensions enable "$UUID"; then
-            exit 0
-        fi
+        # Kadang GNOME tetap INACTIVE walau sudah "enabled" (mis. di-enable saat layar
+        # terkunci). Cek hasilnya; kalau belum ACTIVE, matikan lalu nyalakan sekali lagi.
+        for _ in 1 2; do
+            gnome-extensions enable "$UUID"
+            for _ in 1 2 3 4 5 6 7 8 9 10; do
+                state="$(gnome-extensions info "$UUID" 2>/dev/null | sed -n 's/^ *State: //p')"
+                [ "$state" = "ACTIVE" ] && exit 0
+                sleep 0.2
+            done
+            gnome-extensions disable "$UUID"
+        done
+        gnome-extensions enable "$UUID"   # tetap terdaftar aktif untuk login berikutnya
+        notify-send -a "Teman Ngoding" -i teman-ngoding "Teman Ngoding" \
+            "Maskot belum bisa dinyalakan. Sementara ini CLI-nya dibuka dulu." 2>/dev/null
     fi
     agent="$(sed -n 's/.*"character" *: *"\([a-z]*\)".*/\1/p' "$STATE" 2>/dev/null)"
 fi
