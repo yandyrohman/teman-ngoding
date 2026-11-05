@@ -53,7 +53,8 @@ EXT_DIR="$TARGET_HOME/.local/share/gnome-shell/extensions/$UUID"
 as_user mkdir -p "$EXT_DIR" "$TARGET_HOME/.local/share/applications" \
     "$TARGET_HOME/.local/share/icons/hicolor/scalable/apps"
 as_user cp extension/"$UUID"/* "$EXT_DIR/"
-as_user cp desktop/teman-ngoding.desktop "$TARGET_HOME/.local/share/applications/"
+as_user cp desktop/teman-ngoding.desktop desktop/io.github.yandyrohman.TemanNgoding.Terminal.desktop \
+    "$TARGET_HOME/.local/share/applications/"
 as_user cp icons/teman-ngoding.svg "$TARGET_HOME/.local/share/icons/hicolor/scalable/apps/"
 as_user gtk-update-icon-cache -q -t "$TARGET_HOME/.local/share/icons/hicolor" 2>/dev/null || true
 
@@ -67,7 +68,8 @@ install_stdin() {
 }
 
 echo "==> File sistem (${SUDO:-root})"
-$SUDO install -m 755 bin/teman-ngoding-launch bin/teman-ngoding-switch bin/teman-ngoding-run /usr/local/bin/
+$SUDO install -m 755 bin/teman-ngoding-launch bin/teman-ngoding-switch bin/teman-ngoding-run \
+    bin/teman-ngoding-terminal /usr/local/bin/
 # Script status & polkit menyebut nama user; sesuaikan dengan user yang memasang
 sed "s|('yandi', '/home/yandi')|('$TARGET_USER', '$TARGET_HOME')|" bin/teman-ngoding-status \
     | install_stdin 755 /usr/local/bin/teman-ngoding-status
@@ -84,6 +86,39 @@ sed "s|subject.user == \"yandi\"|subject.user == \"$TARGET_USER\"|" polkit/49-te
 $SUDO systemctl daemon-reload
 $SUDO systemctl enable --now teman-ngoding-status.timer
 $SUDO systemctl start teman-ngoding-status.service || true
+
+echo "==> Terminal Teman Ngoding (Ptyxis dengan tema per jendela)"
+# Dibangun dari terminal/ dan dipasang terpisah dari Ptyxis bawaan (app-id & setting sendiri).
+# Dilewati kalau source-nya belum berubah sejak build terakhir.
+TERM_PREFIX=/usr/local/lib/teman-ngoding/terminal
+TERM_APP_ID=io.github.yandyrohman.TemanNgoding.Terminal
+TERM_HASH="$(find terminal -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)"
+if [ -x "$TERM_PREFIX/bin/ptyxis" ] && [ "$(cat "$TERM_PREFIX/.source-hash" 2>/dev/null)" = "$TERM_HASH" ]; then
+    echo "   Sudah terbaru, dilewati."
+else
+    TERM_PKGS=(meson ninja-build gcc pkg-config gettext desktop-file-utils appstream
+               libgtk-4-dev libadwaita-1-dev libjson-glib-dev libvte-2.91-gtk4-dev libportal-gtk4-dev)
+    if ! { command -v meson && command -v ninja && pkg-config --exists gtk4 libadwaita-1 json-glib-1.0 vte-2.91-gtk4; } >/dev/null 2>&1; then
+        if command -v apt-get >/dev/null; then
+            echo "   Pasang kebutuhan build: ${TERM_PKGS[*]}"
+            $SUDO apt-get install -y "${TERM_PKGS[@]}" || true
+        else
+            echo "   Butuh meson, ninja, dan header GTK4/libadwaita/VTE-GTK4/json-glib untuk membangun terminal." >&2
+        fi
+    fi
+    TERM_BUILD="$(mktemp -d)"
+    if meson setup "$TERM_BUILD" terminal --prefix="$TERM_PREFIX" --buildtype=release \
+            -Dapp-id="$TERM_APP_ID" -Dgschema-id="$TERM_APP_ID" \
+            -Dgschema-path=/io/github/yandyrohman/TemanNgoding/Terminal/ >/dev/null \
+        && ninja -C "$TERM_BUILD" >/dev/null \
+        && $SUDO meson install -C "$TERM_BUILD" --no-rebuild --quiet >/dev/null; then
+        echo "$TERM_HASH" | install_stdin 644 "$TERM_PREFIX/.source-hash"
+        echo "   Terpasang di $TERM_PREFIX"
+    else
+        echo "   Gagal membangun terminal; Teman Ngoding memakai Ptyxis bawaan dulu." >&2
+    fi
+    rm -rf "$TERM_BUILD"
+fi
 
 echo "==> Aktifkan ekstensi"
 if ! as_user gnome-extensions enable "$UUID" 2>/dev/null; then

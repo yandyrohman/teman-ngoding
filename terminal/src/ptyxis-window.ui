@@ -757,6 +757,13 @@
     </section>
     <section>
       <item>
+        <attribute name="id">session-palette</attribute>
+        <attribute name="label">Tema _Sesi Ini…</attribute>
+        <attribute name="action">win.session-palette-dialog</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
         <attribute name="id">new-tab</attribute>
         <attribute name="label" translatable="yes">New _Tab</attribute>
         <attribute name="action">win.new-tab</attribute>

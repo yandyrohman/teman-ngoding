@@ -52,4 +52,4 @@ case "$agent" in
     *) agent=claude; title="Claude Code" ;;
 esac
 
-exec ptyxis --new-window --title="Teman Ngoding – $title" -x "/usr/local/bin/teman-ngoding-run $agent"
+exec /usr/local/bin/teman-ngoding-terminal --new-window --title="Teman Ngoding – $title" -x "/usr/local/bin/teman-ngoding-run $agent"

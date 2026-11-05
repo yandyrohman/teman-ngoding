@@ -4128,7 +4128,7 @@ export class Buddy {
     _launchSwitch() {
         try {
             const proc = Gio.Subprocess.new(
-                ['ptyxis', '--new-window', `--title=${APP_NAME} – Ganti Akun ${this._ch.name}`,
+                ['/usr/local/bin/teman-ngoding-terminal', '--new-window', `--title=${APP_NAME} – Ganti Akun ${this._ch.name}`,
                     '-x', `${SWITCH_SCRIPT} ${this._charId}`],
                 Gio.SubprocessFlags.NONE);
             proc.wait_async(null, null);

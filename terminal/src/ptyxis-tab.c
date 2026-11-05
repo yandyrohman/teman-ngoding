@@ -72,6 +72,7 @@ struct _PtyxisTab
   char                    *program_name;
   PtyxisTabNotify          notify;
   GSignalGroup            *profile_signals;
+  PtyxisPalette           *palette_override;
 
   PtyxisTabState           state;
   GPid                     pid;
@@ -94,6 +95,8 @@ enum {
   PROP_ICON,
   PROP_IGNORE_OSC_TITLE,
   PROP_INDICATOR_ICON,
+  PROP_PALETTE,
+  PROP_PALETTE_OVERRIDE,
   PROP_PROCESS_LEADER_KIND,
   PROP_PROFILE,
   PROP_PROGRESS,
@@ -880,6 +883,28 @@ ptyxis_tab_update_word_char_exceptions (PtyxisTab      *self,
 }
 
 static void
+ptyxis_tab_update_palette (PtyxisTab *self)
+{
+  g_autoptr(PtyxisPalette) palette = NULL;
+
+  g_assert (PTYXIS_IS_TAB (self));
+
+  /* Teman Ngoding: a session palette (per window) wins over the profile
+   * palette, so changing one window never recolors another.
+   */
+  if (self->palette_override != NULL)
+    palette = g_object_ref (self->palette_override);
+  else if (self->profile != NULL)
+    palette = ptyxis_profile_dup_palette (self->profile);
+
+  if (palette == ptyxis_terminal_get_palette (self->terminal))
+    return;
+
+  ptyxis_terminal_set_palette (self->terminal, palette);
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_PALETTE]);
+}
+
+static void
 ptyxis_tab_constructed (GObject *object)
 {
   PtyxisTab *self = (PtyxisTab *)object;
@@ -961,6 +986,11 @@ ptyxis_tab_constructed (GObject *object)
                                  G_CALLBACK (ptyxis_tab_update_custom_links),
                                  self,
                                  G_CONNECT_SWAPPED);
+  g_signal_group_connect_object (self->profile_signals,
+                                 "notify::palette",
+                                 G_CALLBACK (ptyxis_tab_update_palette),
+                                 self,
+                                 G_CONNECT_SWAPPED);
   g_signal_group_set_target (self->profile_signals, self->profile);
 
   g_signal_connect_object (settings,
@@ -994,6 +1024,7 @@ ptyxis_tab_profile_signals_bind_cb (PtyxisTab     *self,
   ptyxis_tab_update_cell_height_scale (self);
   ptyxis_tab_update_cell_width_scale (self);
   ptyxis_tab_update_custom_links (self);
+  ptyxis_tab_update_palette (self);
 }
 
 static void
@@ -1209,6 +1240,7 @@ ptyxis_tab_dispose (GObject *object)
   g_clear_pointer (&self->command, g_strfreev);
   g_clear_pointer (&self->command_line, g_free);
   g_clear_pointer (&self->program_name, g_free);
+  g_clear_object (&self->palette_override);
 
   G_OBJECT_CLASS (ptyxis_tab_parent_class)->dispose (object);
 }
@@ -1261,6 +1293,14 @@ ptyxis_tab_get_property (GObject    *object,
       g_value_set_double (value, ptyxis_tab_get_progress_fraction (self));
       break;
 
+    case PROP_PALETTE:
+      g_value_set_object (value, ptyxis_terminal_get_palette (self->terminal));
+      break;
+
+    case PROP_PALETTE_OVERRIDE:
+      g_value_set_object (value, self->palette_override);
+      break;
+
     case PROP_PROFILE:
       g_value_set_object (value, ptyxis_tab_get_profile (self));
       break;
@@ -1310,6 +1350,10 @@ ptyxis_tab_set_property (GObject      *object,
     {
     case PROP_IGNORE_OSC_TITLE:
       ptyxis_tab_set_ignore_osc_title (self, g_value_get_boolean (value));
+      break;
+
+    case PROP_PALETTE_OVERRIDE:
+      ptyxis_tab_set_palette_override (self, g_value_get_object (value));
       break;
 
     case PROP_PROFILE:
@@ -1382,6 +1426,20 @@ ptyxis_tab_class_init (PtyxisTabClass *klass)
                        PTYXIS_PROCESS_LEADER_KIND_UNKNOWN,
                        (G_PARAM_READABLE |
                         G_PARAM_STATIC_STRINGS));
+
+  properties[PROP_PALETTE] =
+    g_param_spec_object ("palette", NULL, NULL,
+                         PTYXIS_TYPE_PALETTE,
+                         (G_PARAM_READABLE |
+                          G_PARAM_EXPLICIT_NOTIFY |
+                          G_PARAM_STATIC_STRINGS));
+
+  properties[PROP_PALETTE_OVERRIDE] =
+    g_param_spec_object ("palette-override", NULL, NULL,
+                         PTYXIS_TYPE_PALETTE,
+                         (G_PARAM_READWRITE |
+                          G_PARAM_EXPLICIT_NOTIFY |
+                          G_PARAM_STATIC_STRINGS));
 
   properties[PROP_PROFILE] =
     g_param_spec_object ("profile", NULL, NULL,
@@ -2547,4 +2605,40 @@ ptyxis_tab_grab_focus (PtyxisTab *self)
   g_return_if_fail (PTYXIS_IS_TAB (self));
 
   gtk_widget_grab_focus (GTK_WIDGET (self->terminal));
+}
+
+/**
+ * ptyxis_tab_get_palette_override:
+ * @self: a #PtyxisTab
+ *
+ * Returns: (transfer none) (nullable): the session palette, or %NULL when
+ *   the tab follows its profile palette.
+ */
+PtyxisPalette *
+ptyxis_tab_get_palette_override (PtyxisTab *self)
+{
+  g_return_val_if_fail (PTYXIS_IS_TAB (self), NULL);
+
+  return self->palette_override;
+}
+
+/**
+ * ptyxis_tab_set_palette_override:
+ * @self: a #PtyxisTab
+ * @palette: (nullable): a #PtyxisPalette or %NULL to follow the profile
+ *
+ * Sets a palette for this tab only. It is never written to the profile.
+ */
+void
+ptyxis_tab_set_palette_override (PtyxisTab     *self,
+                                 PtyxisPalette *palette)
+{
+  g_return_if_fail (PTYXIS_IS_TAB (self));
+  g_return_if_fail (!palette || PTYXIS_IS_PALETTE (palette));
+
+  if (g_set_object (&self->palette_override, palette))
+    {
+      ptyxis_tab_update_palette (self);
+      g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_PALETTE_OVERRIDE]);
+    }
 }

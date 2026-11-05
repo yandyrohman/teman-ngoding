@@ -143,5 +143,8 @@ void                ptyxis_tab_open_uri                           (PtyxisTab    
                                                                    const char           *uri);
 char               *ptyxis_tab_query_working_directory_from_agent (PtyxisTab            *self);
 void                ptyxis_tab_grab_focus                         (PtyxisTab            *self);
+PtyxisPalette      *ptyxis_tab_get_palette_override               (PtyxisTab            *self);
+void                ptyxis_tab_set_palette_override               (PtyxisTab            *self,
+                                                                   PtyxisPalette        *palette);
 
 G_END_DECLS

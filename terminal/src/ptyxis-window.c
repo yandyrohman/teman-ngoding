@@ -28,6 +28,7 @@
 #include "ptyxis-fullscreen-box.h"
 #include "ptyxis-gated-list-model.h"
 #include "ptyxis-menu-row.h"
+#include "ptyxis-palette-preview.h"
 #include "ptyxis-parking-lot.h"
 #include "ptyxis-preferences-window.h"
 #include "ptyxis-settings.h"
@@ -83,6 +84,8 @@ struct _PtyxisWindow
   PtyxisWindowDressing  *dressing;
   GtkBox                *visual_bell;
   GPropertyAction       *interface_style_action;
+  PtyxisPalette         *session_palette;
+  AdwDialog             *session_palette_dialog;
 
   guint                  visual_bell_source;
   guint                  focus_active_tab_source;
@@ -418,6 +421,10 @@ ptyxis_window_page_attached_cb (PtyxisWindow *self,
   g_assert (PTYXIS_IS_WINDOW (self));
   g_assert (ADW_IS_TAB_PAGE (page));
   g_assert (ADW_IS_TAB_VIEW (tab_view));
+
+  /* Teman Ngoding: every tab in this window shares the window's session palette */
+  ptyxis_tab_set_palette_override (PTYXIS_TAB (adw_tab_page_get_child (page)),
+                                   self->session_palette);
 
   update_visible_and_maybe_close (self);
 }
@@ -1620,6 +1627,249 @@ notify_decoration_layout_cb (PtyxisWindow *self,
     adw_tab_bar_set_inverted (self->tab_bar, inverted);
 }
 
+
+/* ---- Teman Ngoding: per-window ("session") palette ------------------- */
+
+static PtyxisPalette *
+ptyxis_window_get_effective_palette (PtyxisWindow *self)
+{
+  PtyxisTab *tab;
+
+  if (self->session_palette != NULL)
+    return self->session_palette;
+
+  if ((tab = ptyxis_window_get_active_tab (self)))
+    return ptyxis_terminal_get_palette (ptyxis_tab_get_terminal (tab));
+
+  return NULL;
+}
+
+static void
+ptyxis_window_session_palette_update_selection (PtyxisWindow *self)
+{
+  PtyxisPalette *current;
+  GtkWidget *flow_box;
+
+  if (self->session_palette_dialog == NULL)
+    return;
+
+  flow_box = g_object_get_data (G_OBJECT (self->session_palette_dialog), "flow-box");
+  current = ptyxis_window_get_effective_palette (self);
+
+  for (GtkWidget *child = gtk_widget_get_first_child (flow_box);
+       child != NULL;
+       child = gtk_widget_get_next_sibling (child))
+    {
+      GtkWidget *button = gtk_flow_box_child_get_child (GTK_FLOW_BOX_CHILD (child));
+      GtkWidget *preview = gtk_button_get_child (GTK_BUTTON (button));
+      PtyxisPalette *palette = ptyxis_palette_preview_get_palette (PTYXIS_PALETTE_PREVIEW (preview));
+      gboolean selected = current != NULL &&
+                          g_strcmp0 (ptyxis_palette_get_id (palette),
+                                     ptyxis_palette_get_id (current)) == 0;
+
+      g_object_set (preview, "selected", selected, NULL);
+      if (selected)
+        gtk_widget_add_css_class (button, "selected");
+      else
+        gtk_widget_remove_css_class (button, "selected");
+    }
+}
+
+static void
+ptyxis_window_set_session_palette (PtyxisWindow  *self,
+                                   PtyxisPalette *palette)
+{
+  guint n_pages;
+
+  g_assert (PTYXIS_IS_WINDOW (self));
+
+  g_set_object (&self->session_palette, palette);
+
+  n_pages = adw_tab_view_get_n_pages (self->tab_view);
+  for (guint i = 0; i < n_pages; i++)
+    {
+      AdwTabPage *page = adw_tab_view_get_nth_page (self->tab_view, i);
+
+      ptyxis_tab_set_palette_override (PTYXIS_TAB (adw_tab_page_get_child (page)), palette);
+    }
+
+  ptyxis_window_session_palette_update_selection (self);
+}
+
+static void
+ptyxis_window_session_palette_action (GtkWidget  *widget,
+                                      const char *action_name,
+                                      GVariant   *param)
+{
+  PtyxisWindow *self = (PtyxisWindow *)widget;
+  const char *id = g_variant_get_string (param, NULL);
+  PtyxisPalette *palette = NULL;
+
+  g_assert (PTYXIS_IS_WINDOW (self));
+
+  /* An empty id means "follow the profile palette again" */
+  if (id[0] != 0 && !(palette = ptyxis_palette_lookup (id)))
+    return;
+
+  ptyxis_window_set_session_palette (self, palette);
+}
+
+static GtkWidget *
+create_session_palette_preview (gpointer item,
+                                gpointer user_data)
+{
+  PtyxisWindow *self = user_data;
+  PtyxisPalette *palette = item;
+  PtyxisPalette *current = ptyxis_window_get_effective_palette (self);
+  PtyxisSettings *settings = ptyxis_application_get_settings (PTYXIS_APPLICATION_DEFAULT);
+  AdwStyleManager *style_manager = adw_style_manager_get_default ();
+  g_autoptr(GVariant) target = NULL;
+  GtkWidget *preview;
+  GtkWidget *button;
+
+  target = g_variant_take_ref (g_variant_new_string (ptyxis_palette_get_id (palette)));
+  preview = ptyxis_palette_preview_new (palette);
+  g_object_bind_property (style_manager, "dark", preview, "dark", G_BINDING_SYNC_CREATE);
+  g_object_bind_property (settings, "font-desc", preview, "font-desc", G_BINDING_SYNC_CREATE);
+  button = g_object_new (GTK_TYPE_BUTTON,
+                         "css-classes", (const char * const[]) { "palette", NULL },
+                         "action-name", "win.session-palette",
+                         "action-target", target,
+                         "child", preview,
+                         "tooltip-text", ptyxis_palette_get_name (palette),
+                         "overflow", GTK_OVERFLOW_HIDDEN,
+                         NULL);
+
+  if (current != NULL &&
+      g_strcmp0 (ptyxis_palette_get_id (palette), ptyxis_palette_get_id (current)) == 0)
+    {
+      g_object_set (preview, "selected", TRUE, NULL);
+      gtk_widget_add_css_class (button, "selected");
+    }
+
+  return g_object_new (GTK_TYPE_FLOW_BOX_CHILD, "child", button, NULL);
+}
+
+static void
+session_palette_search_changed_cb (GtkSearchEntry  *entry,
+                                   GtkStringFilter *filter)
+{
+  gtk_string_filter_set_search (filter, gtk_editable_get_text (GTK_EDITABLE (entry)));
+}
+
+static void
+session_palette_dialog_closed_cb (PtyxisWindow *self,
+                                  AdwDialog    *dialog)
+{
+  if (self->session_palette_dialog == dialog)
+    self->session_palette_dialog = NULL;
+}
+
+static void
+ptyxis_window_session_palette_dialog_action (GtkWidget  *widget,
+                                             const char *action_name,
+                                             GVariant   *param)
+{
+  PtyxisWindow *self = (PtyxisWindow *)widget;
+  g_autoptr(GVariant) reset_target = NULL;
+  GtkStringFilter *filter;
+  GtkFilterListModel *model;
+  GtkWidget *toolbar_view;
+  GtkWidget *header;
+  GtkWidget *reset;
+  GtkWidget *search;
+  GtkWidget *search_box;
+  GtkWidget *flow_box;
+  GtkWidget *scroller;
+  GtkWidget *clamp;
+  AdwDialog *dialog;
+
+  g_assert (PTYXIS_IS_WINDOW (self));
+
+  if (self->session_palette_dialog != NULL)
+    {
+      adw_dialog_present (self->session_palette_dialog, GTK_WIDGET (self));
+      return;
+    }
+
+  filter = gtk_string_filter_new (gtk_property_expression_new (PTYXIS_TYPE_PALETTE, NULL, "name"));
+  gtk_string_filter_set_match_mode (filter, GTK_STRING_FILTER_MATCH_MODE_SUBSTRING);
+  gtk_string_filter_set_ignore_case (filter, TRUE);
+  model = gtk_filter_list_model_new (g_object_ref (ptyxis_palette_get_all ()), GTK_FILTER (filter));
+
+  flow_box = g_object_new (GTK_TYPE_FLOW_BOX,
+                           "column-spacing", 9,
+                           "row-spacing", 9,
+                           "max-children-per-line", 3,
+                           "min-children-per-line", 1,
+                           "selection-mode", GTK_SELECTION_NONE,
+                           "homogeneous", TRUE,
+                           "valign", GTK_ALIGN_START,
+                           "margin-top", 12,
+                           "margin-bottom", 12,
+                           "margin-start", 12,
+                           "margin-end", 12,
+                           NULL);
+  gtk_flow_box_bind_model (GTK_FLOW_BOX (flow_box), G_LIST_MODEL (model),
+                           create_session_palette_preview, self, NULL);
+  g_object_unref (model);
+
+  clamp = g_object_new (ADW_TYPE_CLAMP,
+                        "maximum-size", 720,
+                        "child", flow_box,
+                        NULL);
+  scroller = g_object_new (GTK_TYPE_SCROLLED_WINDOW,
+                           "hscrollbar-policy", GTK_POLICY_NEVER,
+                           "propagate-natural-height", TRUE,
+                           "vexpand", TRUE,
+                           "child", clamp,
+                           NULL);
+
+  search = gtk_search_entry_new ();
+  gtk_search_entry_set_placeholder_text (GTK_SEARCH_ENTRY (search), "Cari tema…");
+  gtk_widget_set_hexpand (search, TRUE);
+  g_signal_connect_object (search, "search-changed",
+                           G_CALLBACK (session_palette_search_changed_cb),
+                           filter, 0);
+
+  reset_target = g_variant_take_ref (g_variant_new_string (""));
+  reset = g_object_new (GTK_TYPE_BUTTON,
+                        "label", "Ikuti Default",
+                        "tooltip-text", "Kembali ke tema default profil",
+                        "action-name", "win.session-palette",
+                        "action-target", reset_target,
+                        NULL);
+
+  header = adw_header_bar_new ();
+  adw_header_bar_pack_start (ADW_HEADER_BAR (header), reset);
+
+  toolbar_view = adw_toolbar_view_new ();
+  adw_toolbar_view_add_top_bar (ADW_TOOLBAR_VIEW (toolbar_view), header);
+  search_box = g_object_new (GTK_TYPE_BOX,
+                             "margin-start", 12,
+                             "margin-end", 12,
+                             "margin-bottom", 6,
+                             NULL);
+  gtk_box_append (GTK_BOX (search_box), search);
+  adw_toolbar_view_add_top_bar (ADW_TOOLBAR_VIEW (toolbar_view), search_box);
+  adw_toolbar_view_set_content (ADW_TOOLBAR_VIEW (toolbar_view), scroller);
+
+  dialog = adw_dialog_new ();
+  adw_dialog_set_title (dialog, "Tema Sesi Ini");
+  adw_dialog_set_content_width (dialog, 640);
+  adw_dialog_set_content_height (dialog, 560);
+  adw_dialog_set_child (dialog, toolbar_view);
+  g_object_set_data (G_OBJECT (dialog), "flow-box", flow_box);
+  g_signal_connect_object (dialog, "closed",
+                           G_CALLBACK (session_palette_dialog_closed_cb),
+                           self, G_CONNECT_SWAPPED);
+
+  self->session_palette_dialog = dialog;
+  ptyxis_window_session_palette_update_selection (self);
+  adw_dialog_present (dialog, GTK_WIDGET (self));
+  gtk_widget_grab_focus (search);
+}
+
 static void
 ptyxis_window_constructed (GObject *object)
 {
@@ -1632,7 +1882,7 @@ ptyxis_window_constructed (GObject *object)
   G_OBJECT_CLASS (ptyxis_window_parent_class)->constructed (object);
 
   self->dressing = ptyxis_window_dressing_new (self);
-  g_binding_group_bind (self->profile_bindings, "palette",
+  g_binding_group_bind (self->active_tab_bindings, "palette",
                         self->dressing, "palette",
                         G_BINDING_SYNC_CREATE);
   g_binding_group_bind (self->profile_bindings, "opacity",
@@ -1956,6 +2206,7 @@ ptyxis_window_dispose (GObject *object)
   g_clear_handle_id (&self->focus_active_tab_source, g_source_remove);
   g_clear_object (&self->parking_lot);
   g_clear_object (&self->interface_style_action);
+  g_clear_object (&self->session_palette);
 
   G_OBJECT_CLASS (ptyxis_window_parent_class)->dispose (object);
 }
@@ -2094,6 +2345,8 @@ ptyxis_window_class_init (PtyxisWindowClass *klass)
   gtk_widget_class_install_action (widget_class, "win.primary-menu", NULL, ptyxis_window_primary_menu_action);
   gtk_widget_class_install_action (widget_class, "win.tab-menu", NULL, ptyxis_window_tab_menu_action);
   gtk_widget_class_install_action (widget_class, "win.new-tab", "(ss)", ptyxis_window_new_tab_action);
+  gtk_widget_class_install_action (widget_class, "win.session-palette", "s", ptyxis_window_session_palette_action);
+  gtk_widget_class_install_action (widget_class, "win.session-palette-dialog", NULL, ptyxis_window_session_palette_dialog_action);
   gtk_widget_class_install_action (widget_class, "win.new-window", "(ss)", ptyxis_window_new_window_action);
   gtk_widget_class_install_action (widget_class, "win.new-terminal", "(ss)", ptyxis_window_new_terminal_action);
   gtk_widget_class_install_action (widget_class, "win.fullscreen", NULL, ptyxis_window_fullscreen_action);

@@ -13,7 +13,7 @@ semua file disalin apa adanya ke lokasi sistem.
 1. **Cek kebutuhan dulu**, laporkan yang kurang sebelum memasang:
    ```bash
    gnome-shell --version          # harus cocok dengan "shell-version" di extension/teman-ngoding@yandi/metadata.json
-   which ptyxis google-chrome python3 sudo gnome-extensions
+   which meson ninja google-chrome python3 sudo gnome-extensions
    sudo test -x /root/.local/bin/claude && echo ok   # Claude Code untuk root
    sudo test -x /root/.local/bin/agy && echo ok      # Antigravity CLI untuk karakter Gemini (opsional)
    which codex opencode dsh                          # CLI lain (opsional, npm global; dsh = @deepseek-ai/dsh)
@@ -21,7 +21,8 @@ semua file disalin apa adanya ke lokasi sistem.
    - Versi GNOME beda → tambahkan versinya ke `shell-version` di `metadata.json` (tanya user dulu).
    - Claude Code root belum ada → pasang dengan `sudo bash -c 'curl -fsSL https://claude.ai/install.sh | bash'`, lalu login lewat `bin/teman-ngoding-switch claude`.
    - Antigravity CLI root belum ada → `sudo bash -c 'curl -fsSL https://antigravity.google/cli/install.sh | bash'`.
-   - `ptyxis` tidak ada → tanyakan terminal apa yang dipakai, lalu ganti baris `exec ptyxis ...` di `bin/teman-ngoding-launch`.
+   - Terminal dibangun dari `terminal/` oleh `install.sh` (butuh meson/ninja + header GTK4, libadwaita,
+     VTE-GTK4, json-glib; di apt dipasang otomatis). Gagal build → `bin/teman-ngoding-terminal` jatuh ke `ptyxis` bawaan.
 
 2. **Jalankan installer**:
    ```bash
@@ -69,16 +70,30 @@ Perubahan di `metadata.json` atau `extension.js` tetap butuh logout/login.
 
 Script di `bin/` / `lib/` / `systemd/` / `polkit/` → pasang ulang dengan `./install.sh`.
 
+## Terminal (`terminal/`)
+
+Ptyxis 50.1 dari https://gitlab.gnome.org/chergert/ptyxis, divendor apa adanya lalu diubah di satu commit
+terpisah. Dibangun dengan app-id/gschema `io.github.yandyrohman.TemanNgoding.Terminal` ke
+`/usr/local/lib/teman-ngoding/terminal` (bukan /usr/local/bin, supaya `ptyxis` bawaan tidak tertimpa).
+`bin/teman-ngoding-terminal` mengatur `GSETTINGS_SCHEMA_DIR`/`XDG_DATA_DIRS` lalu menjalankannya.
+
+- Tema per jendela: `palette-override` di `PtyxisTab` (menang atas palette profil), `session_palette` +
+  aksi `win.session-palette` / `win.session-palette-dialog` di `PtyxisWindow`. Binding palette profil di
+  `ptyxis-tab.ui` sengaja dihapus; palette terminal diatur `ptyxis_tab_update_palette()`.
+- `install.sh` hanya rebuild kalau hash isi `terminal/` berubah (`.source-hash` di prefix).
+- Upgrade upstream: ganti isi `terminal/` dengan tag baru, lalu terapkan ulang diff commit tema per jendela.
+
 ## Copot pasang
 
 ```bash
 gnome-extensions disable teman-ngoding@yandi
 rm -rf ~/.local/share/gnome-shell/extensions/teman-ngoding@yandi \
        ~/.local/share/applications/teman-ngoding.desktop \
+       ~/.local/share/applications/io.github.yandyrohman.TemanNgoding.Terminal.desktop \
        ~/.local/share/icons/hicolor/scalable/apps/teman-ngoding.svg \
        ~/.config/teman-ngoding.json
 sudo systemctl disable --now teman-ngoding-status.timer
-sudo rm -rf /usr/local/bin/teman-ngoding-{launch,status,switch,run} \
+sudo rm -rf /usr/local/bin/teman-ngoding-{launch,status,switch,run,terminal} \
             /usr/local/lib/teman-ngoding /run/teman-ngoding \
             /etc/systemd/system/teman-ngoding-status.{service,timer} \
             /etc/polkit-1/rules.d/49-teman-ngoding-status.rules

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Terminal Teman Ngoding
+Comment=Terminal untuk CLI AI Teman Ngoding (tema per jendela)
+Exec=/usr/local/bin/teman-ngoding-terminal --new-window
+Icon=teman-ngoding
+Terminal=false
+Type=Application
+NoDisplay=true
+StartupNotify=true
+StartupWMClass=io.github.yandyrohman.TemanNgoding.Terminal

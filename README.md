@@ -16,6 +16,20 @@ Semua karakter memakai kerangka yang sama, jadi semua animasi, adegan, dan inter
 berlaku untuk semuanya. Pilihan karakter disimpan di `~/.config/teman-ngoding.json`.
 Kartu "Akun Saya" menampilkan akun CLI karakter aktif; sisa limit hanya tersedia untuk Claude Code.
 
+## Terminal sendiri, tema per jendela
+
+CLI dibuka di **Terminal Teman Ngoding**, yaitu Ptyxis 50.1 (folder `terminal/`) yang dibangun
+dengan app-id dan setting sendiri (`io.github.yandyrohman.TemanNgoding.Terminal`). Ptyxis bawaan
+sistem tidak diubah sama sekali.
+
+Tiap jendela punya tema sendiri: buka menu **☰ → Tema Sesi Ini…**, pilih palette, dan hanya
+jendela itu yang berubah. Tab baru di jendela yang sama ikut temanya. **Ikuti Default**
+mengembalikan jendela ke palette profil. Tema sesi tidak disimpan; jendela baru selalu mulai
+dari tema default.
+
+Perubahan terhadap upstream ada di commit "Terminal Teman Ngoding: tema per jendela"
+(`terminal/src/ptyxis-{tab,window}.{c,h,ui}`), di atas commit vendor Ptyxis 50.1 yang masih asli.
+
 ## Isi repo
 
 | Folder | Isi | Dipasang ke |
@@ -23,6 +37,8 @@ Kartu "Akun Saya" menampilkan akun CLI karakter aktif; sisa limit hanya tersedia
 | `extension/teman-ngoding@yandi/` | Ekstensi GNOME Shell (`buddy.js` = maskot & karakter, `extension.js` = pemuat) | `~/.local/share/gnome-shell/extensions/` |
 | `bin/teman-ngoding-launch` | Dipanggil ikon aplikasi: nyalakan maskot / buka CLI karakter aktif | `/usr/local/bin/` |
 | `bin/teman-ngoding-run` | Jalankan `claude` / `agy` / `codex` / `opencode` / `dsh` sebagai root | `/usr/local/bin/` |
+| `bin/teman-ngoding-terminal` | Buka Terminal Teman Ngoding (fallback ke `ptyxis` bawaan) | `/usr/local/bin/` |
+| `terminal/` | Source Ptyxis 50.1 + fitur tema per jendela, dibangun oleh `install.sh` | `/usr/local/lib/teman-ngoding/terminal/` |
 | `bin/teman-ngoding-switch` | Ganti akun CLI (login via Chrome user, atau API key) | `/usr/local/bin/` |
 | `bin/teman-ngoding-status` | Ambil info akun + limit → `/run/teman-ngoding/status.json` | `/usr/local/bin/` |
 | `lib/open-in-user-chrome` | Buka URL login di Chrome milik user (bukan root) | `/usr/local/lib/teman-ngoding/` |
@@ -33,7 +49,10 @@ Kartu "Akun Saya" menampilkan akun CLI karakter aktif; sisa limit hanya tersedia
 ## Kebutuhan
 
 - GNOME Shell 50 (lihat `metadata.json`)
-- `ptyxis` (terminal), `google-chrome`, `python3`, `sudo`
+- `google-chrome`, `python3`, `sudo`
+- Untuk membangun terminal: `meson`, `ninja` dan header GTK4/libadwaita/VTE-GTK4/json-glib
+  (di Ubuntu/Debian `install.sh` memasangnya sendiri lewat `apt-get`). Kalau build gagal,
+  Teman Ngoding memakai `ptyxis` bawaan.
 - CLI yang mau dipakai, terpasang untuk root:
   - [Claude Code](https://claude.com/claude-code) di `/root/.local/bin/claude`
   - Antigravity CLI (karakter Gemini) di `/root/.local/bin/agy`:
