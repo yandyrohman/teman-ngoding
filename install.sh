@@ -53,8 +53,17 @@ EXT_DIR="$TARGET_HOME/.local/share/gnome-shell/extensions/$UUID"
 as_user mkdir -p "$EXT_DIR" "$TARGET_HOME/.local/share/applications" \
     "$TARGET_HOME/.local/share/icons/hicolor/scalable/apps"
 as_user cp extension/"$UUID"/* "$EXT_DIR/"
-as_user cp desktop/teman-ngoding.desktop desktop/io.github.yandyrohman.TemanNgoding.Terminal.desktop \
-    "$TARGET_HOME/.local/share/applications/"
+# Satu file desktop dinamai sesuai app-id terminal, supaya jendela CLI dan ikon
+# yang di-pin di dock dianggap aplikasi yang sama (dulu: teman-ngoding.desktop).
+DESKTOP_ID=io.github.yandyrohman.TemanNgoding.Terminal.desktop
+as_user cp "desktop/$DESKTOP_ID" "$TARGET_HOME/.local/share/applications/"
+as_user rm -f "$TARGET_HOME/.local/share/applications/teman-ngoding.desktop"
+as_user update-desktop-database -q "$TARGET_HOME/.local/share/applications" 2>/dev/null || true
+# Pin lama di dock ikut dipindah ke nama baru
+favs="$(as_user gsettings get org.gnome.shell favorite-apps 2>/dev/null || true)"
+if [[ "$favs" == *"'teman-ngoding.desktop'"* ]]; then
+    as_user gsettings set org.gnome.shell favorite-apps "${favs//\'teman-ngoding.desktop\'/\'$DESKTOP_ID\'}"
+fi
 as_user cp icons/teman-ngoding.svg "$TARGET_HOME/.local/share/icons/hicolor/scalable/apps/"
 as_user gtk-update-icon-cache -q -t "$TARGET_HOME/.local/share/icons/hicolor" 2>/dev/null || true
 

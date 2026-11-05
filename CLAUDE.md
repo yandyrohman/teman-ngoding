@@ -93,7 +93,6 @@ terpisah. Dibangun dengan app-id/gschema `io.github.yandyrohman.TemanNgoding.Ter
 ```bash
 gnome-extensions disable teman-ngoding@yandi
 rm -rf ~/.local/share/gnome-shell/extensions/teman-ngoding@yandi \
-       ~/.local/share/applications/teman-ngoding.desktop \
        ~/.local/share/applications/io.github.yandyrohman.TemanNgoding.Terminal.desktop \
        ~/.local/share/icons/hicolor/scalable/apps/teman-ngoding.svg \
        ~/.config/teman-ngoding.json

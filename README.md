@@ -44,7 +44,7 @@ Perubahan terhadap upstream: `git diff ce6c5a7 -- terminal/` (commit vendor Ptyx
 | `lib/open-in-user-chrome` | Buka URL login di Chrome milik user (bukan root) | `/usr/local/lib/teman-ngoding/` |
 | `systemd/` | Service + timer status (tiap 3 menit) | `/etc/systemd/system/` |
 | `polkit/` | Izinkan user menjalankan service status tanpa password | `/etc/polkit-1/rules.d/` |
-| `desktop/`, `icons/` | Launcher aplikasi (klik kanan: pilih CLI) + ikon | `~/.local/share/` |
+| `desktop/`, `icons/` | Launcher aplikasi (klik kanan: pilih CLI) + ikon; nama file = app-id terminal supaya bisa di-pin di dock | `~/.local/share/` |
 
 ## Kebutuhan
 
