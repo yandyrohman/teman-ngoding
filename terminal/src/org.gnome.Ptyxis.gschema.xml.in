@@ -185,7 +185,8 @@
     </key>
 
     <key name="restore-session" type="b">
-      <default>true</default>
+      <!-- Teman Ngoding: tiap klik harus membuka jendela baru yang bersih -->
+      <default>false</default>
       <summary>Restore Session</summary>
       <description>Restore tabs from previous session when starting Ptyxis</description>
     </key>

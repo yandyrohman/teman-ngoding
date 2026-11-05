@@ -23,6 +23,8 @@ if [ -z "$agent" ]; then
         notify-send -a "Teman Ngoding" -i teman-ngoding "Teman Ngoding" \
             "Logout lalu login sekali supaya maskotnya muncul. Sementara ini CLI-nya dibuka dulu." 2>/dev/null
     elif [ -e "$FLAG" ] || [ "$state" != "ACTIVE" ]; then
+        was_off=0 ok=0
+        [ -e "$FLAG" ] && was_off=1
         # kalau masih dalam animasi pamit, matikan dulu lalu nyalakan lagi
         [ "$state" = "ACTIVE" ] && gnome-extensions disable "$UUID"
         # Kadang GNOME tetap INACTIVE walau sudah "enabled" (mis. di-enable saat layar
@@ -31,14 +33,22 @@ if [ -z "$agent" ]; then
             gnome-extensions enable "$UUID"
             for _ in 1 2 3 4 5 6 7 8 9 10; do
                 state="$(gnome-extensions info "$UUID" 2>/dev/null | sed -n 's/^ *State: //p')"
-                [ "$state" = "ACTIVE" ] && exit 0
+                # Maskot sengaja dipamitkan → klik ini cukup memanggilnya kembali.
+                # Kalau cuma nyangkut INACTIVE (mis. habis reload), CLI tetap dibuka.
+                if [ "$state" = "ACTIVE" ]; then
+                    [ "$was_off" = 1 ] && exit 0
+                    ok=1
+                    break 2
+                fi
                 sleep 0.2
             done
             gnome-extensions disable "$UUID"
         done
-        gnome-extensions enable "$UUID"   # tetap terdaftar aktif untuk login berikutnya
-        notify-send -a "Teman Ngoding" -i teman-ngoding "Teman Ngoding" \
-            "Maskot belum bisa dinyalakan. Sementara ini CLI-nya dibuka dulu." 2>/dev/null
+        if [ "$ok" != 1 ]; then
+            gnome-extensions enable "$UUID"   # tetap terdaftar aktif untuk login berikutnya
+            notify-send -a "Teman Ngoding" -i teman-ngoding "Teman Ngoding" \
+                "Maskot belum bisa dinyalakan. Sementara ini CLI-nya dibuka dulu." 2>/dev/null
+        fi
     fi
     agent="$(sed -n 's/.*"character" *: *"\([a-z]*\)".*/\1/p' "$STATE" 2>/dev/null)"
 fi
