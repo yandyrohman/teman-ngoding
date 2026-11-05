@@ -87,7 +87,7 @@ $SUDO systemctl daemon-reload
 $SUDO systemctl enable --now teman-ngoding-status.timer
 $SUDO systemctl start teman-ngoding-status.service || true
 
-echo "==> Terminal Teman Ngoding (Ptyxis dengan tema per jendela)"
+echo "==> Terminal Teman Ngoding (Ptyxis, tema per jendela)"
 # Dibangun dari terminal/ dan dipasang terpisah dari Ptyxis bawaan (app-id & setting sendiri).
 # Dilewati kalau source-nya belum berubah sejak build terakhir.
 TERM_PREFIX=/usr/local/lib/teman-ngoding/terminal

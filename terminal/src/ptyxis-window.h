@@ -50,6 +50,10 @@ void           ptyxis_window_append_tab          (PtyxisWindow       *self,
                                                   PtyxisTab          *tab);
 PtyxisProfile *ptyxis_window_get_active_profile  (PtyxisWindow       *self);
 PtyxisTab     *ptyxis_window_get_active_tab      (PtyxisWindow       *self);
+gboolean       ptyxis_window_get_dark            (PtyxisWindow       *self);
+PtyxisPalette *ptyxis_window_get_session_palette_effective (PtyxisWindow *self);
+void           ptyxis_window_set_session_palette (PtyxisWindow       *self,
+                                                  PtyxisPalette      *palette);
 void           ptyxis_window_set_active_tab      (PtyxisWindow       *self,
                                                   PtyxisTab          *active_tab);
 void           ptyxis_window_visual_bell         (PtyxisWindow       *self);

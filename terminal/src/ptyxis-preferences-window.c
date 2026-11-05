@@ -31,6 +31,7 @@
 #include "ptyxis-custom-link-editor.h"
 #include "ptyxis-custom-link-row.h"
 #include "ptyxis-palette-preview.h"
+#include "ptyxis-window.h"
 #include "ptyxis-preferences-list-item.h"
 #include "ptyxis-preferences-window.h"
 #include "ptyxis-profile-editor.h"
@@ -424,27 +425,7 @@ index_to_string (const GValue       *value,
   return NULL;
 }
 
-static gboolean
-map_palette_to_selected (GBinding     *binding,
-                         const GValue *from_value,
-                         GValue       *to_value,
-                         gpointer      user_data)
-{
-  PtyxisPalette *current;
-  PtyxisPalette *palette;
-
-  g_assert (G_IS_BINDING (binding));
-  g_assert (from_value != NULL);
-  g_assert (to_value != NULL);
-
-  palette = g_value_get_object (from_value);
-  current = ptyxis_palette_preview_get_palette (user_data);
-
-  g_value_set_boolean (to_value,
-                       0 == g_strcmp0 (ptyxis_palette_get_id (palette),
-                                       ptyxis_palette_get_id (current)));
-  return TRUE;
-}
+static void ptyxis_preferences_window_refresh_selected (PtyxisPreferencesWindow *self);
 
 static gboolean
 opacity_to_label (GBinding     *binding,
@@ -520,18 +501,7 @@ ptyxis_preferences_window_notify_default_profile_cb (PtyxisPreferencesWindow *se
 
   invalidate_filter (self);
 
-  for (GtkWidget *child = gtk_widget_get_first_child (GTK_WIDGET (self->palette_previews));
-       child;
-       child = gtk_widget_get_next_sibling (child))
-    {
-      GtkWidget *button = gtk_flow_box_child_get_child (GTK_FLOW_BOX_CHILD (child));
-      GtkWidget *preview = gtk_button_get_child (GTK_BUTTON (button));
-
-      g_object_bind_property_full (profile, "palette", preview, "selected",
-                                   G_BINDING_SYNC_CREATE,
-                                   map_palette_to_selected, NULL,
-                                   preview, NULL);
-    }
+  ptyxis_preferences_window_refresh_selected (self);
 
   group = g_simple_action_group_new ();
   palette_action = g_property_action_new ("palette", profile, "palette-id");
@@ -668,6 +638,57 @@ ptyxis_preferences_window_drop_palette_cb (PtyxisPreferencesWindow *self,
   return FALSE;
 }
 
+/* Teman Ngoding: palettes here belong to the terminal window that opened
+ * Preferences (its transient-for), never to the shared default profile.
+ */
+static PtyxisWindow *
+ptyxis_preferences_window_get_session_window (PtyxisPreferencesWindow *self)
+{
+  GtkWindow *parent = gtk_window_get_transient_for (GTK_WINDOW (self));
+
+  return PTYXIS_IS_WINDOW (parent) ? PTYXIS_WINDOW (parent) : NULL;
+}
+
+static void
+ptyxis_preferences_window_refresh_selected (PtyxisPreferencesWindow *self)
+{
+  PtyxisWindow *window = ptyxis_preferences_window_get_session_window (self);
+  PtyxisPalette *current = window ? ptyxis_window_get_session_palette_effective (window) : NULL;
+
+  for (GtkWidget *child = gtk_widget_get_first_child (GTK_WIDGET (self->palette_previews));
+       child;
+       child = gtk_widget_get_next_sibling (child))
+    {
+      GtkWidget *button = gtk_flow_box_child_get_child (GTK_FLOW_BOX_CHILD (child));
+      GtkWidget *preview = gtk_button_get_child (GTK_BUTTON (button));
+      PtyxisPalette *palette = ptyxis_palette_preview_get_palette (PTYXIS_PALETTE_PREVIEW (preview));
+
+      g_object_set (preview,
+                    "selected", current != NULL &&
+                                g_strcmp0 (ptyxis_palette_get_id (palette),
+                                           ptyxis_palette_get_id (current)) == 0,
+                    NULL);
+    }
+}
+
+static void
+ptyxis_preferences_window_session_palette_cb (GSimpleAction *action,
+                                              GVariant      *param,
+                                              gpointer       user_data)
+{
+  PtyxisPreferencesWindow *self = user_data;
+  PtyxisWindow *window = ptyxis_preferences_window_get_session_window (self);
+  PtyxisPalette *palette;
+
+  if (window == NULL)
+    return;
+
+  if ((palette = ptyxis_palette_lookup (g_variant_get_string (param, NULL))))
+    ptyxis_window_set_session_palette (window, palette);
+
+  ptyxis_preferences_window_refresh_selected (self);
+}
+
 static void
 ptyxis_preferences_window_activate_palette_cb (GtkFlowBoxChild *child,
                                                PtyxisPalette   *palette)
@@ -679,7 +700,7 @@ ptyxis_preferences_window_activate_palette_cb (GtkFlowBoxChild *child,
 
   param = g_variant_take_ref (g_variant_new_string (ptyxis_palette_get_id (palette)));
 
-  gtk_widget_activate_action_variant (GTK_WIDGET (child), "default-profile.palette", param);
+  gtk_widget_activate_action_variant (GTK_WIDGET (child), "session.palette", param);
 }
 
 static GtkWidget *
@@ -687,7 +708,6 @@ create_palette_preview (gpointer item,
                         gpointer user_data)
 {
   AdwStyleManager *style_manager = user_data;
-  g_autoptr(PtyxisProfile) default_profile = NULL;
   g_autoptr(GVariant) action_target = NULL;
   PtyxisPalette *palette = item;
   PtyxisSettings *settings;
@@ -705,7 +725,7 @@ create_palette_preview (gpointer item,
   g_object_bind_property (settings, "font-desc", preview, "font-desc", G_BINDING_SYNC_CREATE);
   button = g_object_new (GTK_TYPE_TOGGLE_BUTTON,
                          "css-classes", (const char * const[]) { "palette", NULL },
-                         "action-name", "default-profile.palette",
+                         "action-name", "session.palette",
                          "action-target", action_target,
                          "child", preview,
                          "focus-on-click", FALSE,
@@ -721,14 +741,6 @@ create_palette_preview (gpointer item,
                            palette,
                            0);
 
-  /* This is probably pretty slow and terrible to do here, but we need another
-   * way to track default-palette of default-profile, both of which could change.
-   */
-  default_profile = ptyxis_application_dup_default_profile (PTYXIS_APPLICATION_DEFAULT);
-  g_object_bind_property_full (default_profile, "palette", preview, "selected",
-                               G_BINDING_SYNC_CREATE,
-                               map_palette_to_selected, NULL,
-                               preview, NULL);
 
   return child;
 }
@@ -819,6 +831,24 @@ ptyxis_preferences_window_constructed (GObject *object)
                            create_palette_preview,
                            g_object_ref (style_manager),
                            g_object_unref);
+
+  {
+    g_autoptr(GSimpleActionGroup) session_group = g_simple_action_group_new ();
+    g_autoptr(GSimpleAction) session_palette = g_simple_action_new ("palette", G_VARIANT_TYPE_STRING);
+
+    g_signal_connect_object (session_palette, "activate",
+                             G_CALLBACK (ptyxis_preferences_window_session_palette_cb),
+                             self, 0);
+    g_action_map_add_action (G_ACTION_MAP (session_group), G_ACTION (session_palette));
+    gtk_widget_insert_action_group (GTK_WIDGET (self), "session", G_ACTION_GROUP (session_group));
+
+    g_signal_connect_swapped (self, "notify::transient-for",
+                              G_CALLBACK (ptyxis_preferences_window_refresh_selected),
+                              self);
+    g_signal_connect_object (self->filter_palettes, "items-changed",
+                             G_CALLBACK (ptyxis_preferences_window_refresh_selected),
+                             self, G_CONNECT_SWAPPED | G_CONNECT_AFTER);
+  }
 
   g_signal_connect_object (app,
                            "notify::default-profile",

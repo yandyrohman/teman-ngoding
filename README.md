@@ -18,17 +18,17 @@ Kartu "Akun Saya" menampilkan akun CLI karakter aktif; sisa limit hanya tersedia
 
 ## Terminal sendiri, tema per jendela
 
-CLI dibuka di **Terminal Teman Ngoding**, yaitu Ptyxis 50.1 (folder `terminal/`) yang dibangun
+CLI dibuka di terminal milik Teman Ngoding sendiri (namanya juga "Teman Ngoding"), yaitu Ptyxis 50.1 (folder `terminal/`) yang dibangun
 dengan app-id dan setting sendiri (`io.github.yandyrohman.TemanNgoding.Terminal`). Ptyxis bawaan
 sistem tidak diubah sama sekali.
 
-Tiap jendela punya tema sendiri: buka menu **☰ → Tema Sesi Ini…**, pilih palette, dan hanya
-jendela itu yang berubah. Tab baru di jendela yang sama ikut temanya. **Ikuti Default**
+Tiap jendela punya tema sendiri: buka menu **☰ → Tema Sesi Ini…** (atau palette di
+Preferences), pilih palette, dan hanya jendela itu yang berubah. Tombol Sistem/Terang/Gelap
+di atas menu ☰ juga hanya berlaku untuk jendela itu. Tab baru di jendela yang sama ikut temanya. **Ikuti Default**
 mengembalikan jendela ke palette profil. Tema sesi tidak disimpan; jendela baru selalu mulai
 dari tema default.
 
-Perubahan terhadap upstream ada di commit "Terminal Teman Ngoding: tema per jendela"
-(`terminal/src/ptyxis-{tab,window}.{c,h,ui}`), di atas commit vendor Ptyxis 50.1 yang masih asli.
+Perubahan terhadap upstream: `git diff ce6c5a7 -- terminal/` (commit vendor Ptyxis 50.1 yang masih asli).
 
 ## Isi repo
 
@@ -37,7 +37,7 @@ Perubahan terhadap upstream ada di commit "Terminal Teman Ngoding: tema per jend
 | `extension/teman-ngoding@yandi/` | Ekstensi GNOME Shell (`buddy.js` = maskot & karakter, `extension.js` = pemuat) | `~/.local/share/gnome-shell/extensions/` |
 | `bin/teman-ngoding-launch` | Dipanggil ikon aplikasi: nyalakan maskot / buka CLI karakter aktif | `/usr/local/bin/` |
 | `bin/teman-ngoding-run` | Jalankan `claude` / `agy` / `codex` / `opencode` / `dsh` sebagai root | `/usr/local/bin/` |
-| `bin/teman-ngoding-terminal` | Buka Terminal Teman Ngoding (fallback ke `ptyxis` bawaan) | `/usr/local/bin/` |
+| `bin/teman-ngoding-terminal` | Buka terminal Teman Ngoding (fallback ke `ptyxis` bawaan) | `/usr/local/bin/` |
 | `terminal/` | Source Ptyxis 50.1 + fitur tema per jendela, dibangun oleh `install.sh` | `/usr/local/lib/teman-ngoding/terminal/` |
 | `bin/teman-ngoding-switch` | Ganti akun CLI (login via Chrome user, atau API key) | `/usr/local/bin/` |
 | `bin/teman-ngoding-status` | Ambil info akun + limit → `/run/teman-ngoding/status.json` | `/usr/local/bin/` |

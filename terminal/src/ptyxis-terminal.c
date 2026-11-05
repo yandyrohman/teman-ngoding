@@ -106,9 +106,10 @@ static const char * const url_regexes_str[] = {
 };
 static VteRegex *url_regexes[G_N_ELEMENTS (url_regexes_str)];
 
-static void
+void
 ptyxis_terminal_update_colors (PtyxisTerminal *self)
 {
+  GtkRoot *root;
   const PtyxisPaletteFace *face;
   AdwStyleManager *style_manager;
   gboolean dark;
@@ -117,6 +118,10 @@ ptyxis_terminal_update_colors (PtyxisTerminal *self)
 
   style_manager = adw_style_manager_get_default ();
   dark = adw_style_manager_get_dark (style_manager);
+
+  /* Teman Ngoding: each window may force light/dark for itself */
+  if ((root = gtk_widget_get_root (GTK_WIDGET (self))) && PTYXIS_IS_WINDOW (root))
+    dark = ptyxis_window_get_dark (PTYXIS_WINDOW (root));
 
   if (self->palette == NULL)
     self->palette = ptyxis_palette_lookup ("gnome");

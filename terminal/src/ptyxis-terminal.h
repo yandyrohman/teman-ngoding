@@ -32,6 +32,7 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (PtyxisTerminal, ptyxis_terminal, PTYXIS, TERMINAL, VteTerminal)
 
 PtyxisPalette *ptyxis_terminal_get_palette                   (PtyxisTerminal *self);
+void           ptyxis_terminal_update_colors                 (PtyxisTerminal *self);
 void           ptyxis_terminal_set_palette                   (PtyxisTerminal *self,
                                                               PtyxisPalette  *palette);
 const char    *ptyxis_terminal_get_current_container_name    (PtyxisTerminal *self);

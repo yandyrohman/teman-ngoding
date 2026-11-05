@@ -83,7 +83,8 @@ struct _PtyxisWindow
   GSignalGroup          *selected_page_signals;
   PtyxisWindowDressing  *dressing;
   GtkBox                *visual_bell;
-  GPropertyAction       *interface_style_action;
+  GSimpleAction         *interface_style_action;
+  char                  *session_style;
   PtyxisPalette         *session_palette;
   AdwDialog             *session_palette_dialog;
 
@@ -425,6 +426,7 @@ ptyxis_window_page_attached_cb (PtyxisWindow *self,
   /* Teman Ngoding: every tab in this window shares the window's session palette */
   ptyxis_tab_set_palette_override (PTYXIS_TAB (adw_tab_page_get_child (page)),
                                    self->session_palette);
+  ptyxis_terminal_update_colors (ptyxis_tab_get_terminal (PTYXIS_TAB (adw_tab_page_get_child (page))));
 
   update_visible_and_maybe_close (self);
 }
@@ -1295,6 +1297,8 @@ ptyxis_window_preferences_action (GtkWidget  *widget,
     {
       if (PTYXIS_IS_PREFERENCES_WINDOW (iter->data))
         {
+          /* Teman Ngoding: palette choices go to the window that opened Preferences */
+          gtk_window_set_transient_for (GTK_WINDOW (iter->data), GTK_WINDOW (self));
           gtk_window_present (GTK_WINDOW (iter->data));
           return;
         }
@@ -1553,6 +1557,21 @@ ptyxis_window_add_zoom_controls (PtyxisWindow *self)
   gtk_popover_menu_add_child (GTK_POPOVER_MENU (popover), zoom_box, "zoom");
 }
 
+static void ptyxis_window_refresh_colors (PtyxisWindow *self);
+static PtyxisPalette *ptyxis_window_get_effective_palette (PtyxisWindow *self);
+
+static void
+ptyxis_window_interface_style_change_state_cb (PtyxisWindow  *self,
+                                               GVariant      *value,
+                                               GSimpleAction *action)
+{
+  g_assert (PTYXIS_IS_WINDOW (self));
+
+  g_simple_action_set_state (action, value);
+  g_set_str (&self->session_style, g_variant_get_string (value, NULL));
+  ptyxis_window_refresh_colors (self);
+}
+
 static void
 ptyxis_window_add_theme_controls (PtyxisWindow *self)
 {
@@ -1563,8 +1582,16 @@ ptyxis_window_add_theme_controls (PtyxisWindow *self)
 
   g_assert (PTYXIS_IS_WINDOW (self));
 
-  settings = ptyxis_application_get_settings (PTYXIS_APPLICATION_DEFAULT);
-  self->interface_style_action = g_property_action_new ("interface-style", settings, "interface-style");
+  /* Teman Ngoding: light/dark only for this window, never the app-wide setting */
+  (void)settings;
+  self->interface_style_action = g_simple_action_new_stateful ("interface-style",
+                                                               G_VARIANT_TYPE_STRING,
+                                                               g_variant_new_string (self->session_style));
+  g_signal_connect_object (self->interface_style_action,
+                           "change-state",
+                           G_CALLBACK (ptyxis_window_interface_style_change_state_cb),
+                           self,
+                           G_CONNECT_SWAPPED);
   g_action_map_add_action (G_ACTION_MAP (self), G_ACTION (self->interface_style_action));
 
   popover = gtk_menu_button_get_popover (self->primary_menu_button);
@@ -1630,6 +1657,47 @@ notify_decoration_layout_cb (PtyxisWindow *self,
 
 /* ---- Teman Ngoding: per-window ("session") palette ------------------- */
 
+gboolean
+ptyxis_window_get_dark (PtyxisWindow *self)
+{
+  g_return_val_if_fail (PTYXIS_IS_WINDOW (self), FALSE);
+
+  if (g_strcmp0 (self->session_style, "force-dark") == 0)
+    return TRUE;
+
+  if (g_strcmp0 (self->session_style, "force-light") == 0)
+    return FALSE;
+
+  return adw_style_manager_get_dark (adw_style_manager_get_default ());
+}
+
+static void
+ptyxis_window_refresh_colors (PtyxisWindow *self)
+{
+  guint n_pages;
+
+  g_assert (PTYXIS_IS_WINDOW (self));
+
+  n_pages = adw_tab_view_get_n_pages (self->tab_view);
+  for (guint i = 0; i < n_pages; i++)
+    {
+      AdwTabPage *page = adw_tab_view_get_nth_page (self->tab_view, i);
+
+      ptyxis_terminal_update_colors (ptyxis_tab_get_terminal (PTYXIS_TAB (adw_tab_page_get_child (page))));
+    }
+
+  if (self->dressing != NULL)
+    ptyxis_window_dressing_queue_update (self->dressing);
+}
+
+PtyxisPalette *
+ptyxis_window_get_session_palette_effective (PtyxisWindow *self)
+{
+  g_return_val_if_fail (PTYXIS_IS_WINDOW (self), NULL);
+
+  return ptyxis_window_get_effective_palette (self);
+}
+
 static PtyxisPalette *
 ptyxis_window_get_effective_palette (PtyxisWindow *self)
 {
@@ -1675,13 +1743,13 @@ ptyxis_window_session_palette_update_selection (PtyxisWindow *self)
     }
 }
 
-static void
+void
 ptyxis_window_set_session_palette (PtyxisWindow  *self,
                                    PtyxisPalette *palette)
 {
   guint n_pages;
 
-  g_assert (PTYXIS_IS_WINDOW (self));
+  g_return_if_fail (PTYXIS_IS_WINDOW (self));
 
   g_set_object (&self->session_palette, palette);
 
@@ -2207,6 +2275,7 @@ ptyxis_window_dispose (GObject *object)
   g_clear_object (&self->parking_lot);
   g_clear_object (&self->interface_style_action);
   g_clear_object (&self->session_palette);
+  g_clear_pointer (&self->session_style, g_free);
 
   G_OBJECT_CLASS (ptyxis_window_parent_class)->dispose (object);
 }
@@ -2389,6 +2458,7 @@ ptyxis_window_init (PtyxisWindow *self)
   GtkGestureClick *click;
 
   self->active_tab_bindings = g_binding_group_new ();
+  self->session_style = g_strdup ("default");
   self->profile_bindings = g_binding_group_new ();
 
   self->selected_page_signals = g_signal_group_new (ADW_TYPE_TAB_PAGE);

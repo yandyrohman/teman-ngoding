@@ -64,8 +64,9 @@ ptyxis_window_dressing_update (PtyxisWindowDressing *self)
   if (self->palette != NULL)
     {
       PtyxisSettings *settings = ptyxis_application_get_settings (PTYXIS_APPLICATION_DEFAULT);
-      AdwStyleManager *style_manager = adw_style_manager_get_default ();
-      gboolean dark = adw_style_manager_get_dark (style_manager);
+      g_autoptr(PtyxisWindow) window = g_weak_ref_get (&self->window_wr);
+      gboolean dark = window ? ptyxis_window_get_dark (window)
+                             : adw_style_manager_get_dark (adw_style_manager_get_default ());
       const PtyxisPaletteFace *face = ptyxis_palette_get_face (self->palette, dark);
       g_autofree char *bg = NULL;
       g_autofree char *fg = NULL;
@@ -213,7 +214,7 @@ ptyxis_window_dressing_update_idle (gpointer user_data)
   return G_SOURCE_REMOVE;
 }
 
-static void
+void
 ptyxis_window_dressing_queue_update (PtyxisWindowDressing *self)
 {
   g_assert (PTYXIS_IS_WINDOW_DRESSING (self));

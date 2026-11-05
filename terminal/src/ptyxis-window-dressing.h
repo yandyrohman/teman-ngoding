@@ -39,5 +39,7 @@ double                ptyxis_window_dressing_get_opacity (PtyxisWindowDressing *
 void                  ptyxis_window_dressing_set_opacity (PtyxisWindowDressing *self,
                                                           double                opacity);
 
+void                  ptyxis_window_dressing_queue_update (PtyxisWindowDressing *self);
+
 G_END_DECLS
 

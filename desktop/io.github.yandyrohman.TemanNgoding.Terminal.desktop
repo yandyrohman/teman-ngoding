@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Terminal Teman Ngoding
+Name=Teman Ngoding
 Comment=Terminal untuk CLI AI Teman Ngoding (tema per jendela)
 Exec=/usr/local/bin/teman-ngoding-terminal --new-window
 Icon=teman-ngoding

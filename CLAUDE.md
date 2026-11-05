@@ -80,6 +80,11 @@ terpisah. Dibangun dengan app-id/gschema `io.github.yandyrohman.TemanNgoding.Ter
 - Tema per jendela: `palette-override` di `PtyxisTab` (menang atas palette profil), `session_palette` +
   aksi `win.session-palette` / `win.session-palette-dialog` di `PtyxisWindow`. Binding palette profil di
   `ptyxis-tab.ui` sengaja dihapus; palette terminal diatur `ptyxis_tab_update_palette()`.
+- Terang/gelap juga per jendela: aksi `win.interface-style` di window kini stateful milik jendela
+  (bukan setting global); terminal & dressing memakai `ptyxis_window_get_dark()`.
+- Palette di Preferences memakai aksi `session.palette` → jendela `transient-for` Preferences
+  (di-set ulang tiap kali Preferences dibuka), bukan profil default.
+- `restore-session` default false (tiap klik = jendela bersih).
 - `install.sh` hanya rebuild kalau hash isi `terminal/` berubah (`.source-hash` di prefix).
 - Upgrade upstream: ganti isi `terminal/` dengan tag baru, lalu terapkan ulang diff commit tema per jendela.
 
