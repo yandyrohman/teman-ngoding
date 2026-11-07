@@ -146,5 +146,9 @@ void                ptyxis_tab_grab_focus                         (PtyxisTab    
 PtyxisPalette      *ptyxis_tab_get_palette_override               (PtyxisTab            *self);
 void                ptyxis_tab_set_palette_override               (PtyxisTab            *self,
                                                                    PtyxisPalette        *palette);
+const char         *ptyxis_tab_get_style_override                 (PtyxisTab            *self);
+void                ptyxis_tab_set_style_override                 (PtyxisTab            *self,
+                                                                   const char           *style);
+gboolean            ptyxis_tab_get_dark                           (PtyxisTab            *self);
 
 G_END_DECLS

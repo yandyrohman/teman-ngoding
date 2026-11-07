@@ -109,7 +109,7 @@ static VteRegex *url_regexes[G_N_ELEMENTS (url_regexes_str)];
 void
 ptyxis_terminal_update_colors (PtyxisTerminal *self)
 {
-  GtkRoot *root;
+  GtkWidget *tab;
   const PtyxisPaletteFace *face;
   AdwStyleManager *style_manager;
   gboolean dark;
@@ -119,9 +119,9 @@ ptyxis_terminal_update_colors (PtyxisTerminal *self)
   style_manager = adw_style_manager_get_default ();
   dark = adw_style_manager_get_dark (style_manager);
 
-  /* Teman Ngoding: each window may force light/dark for itself */
-  if ((root = gtk_widget_get_root (GTK_WIDGET (self))) && PTYXIS_IS_WINDOW (root))
-    dark = ptyxis_window_get_dark (PTYXIS_WINDOW (root));
+  /* Teman Ngoding: each tab may force light/dark for itself */
+  if ((tab = gtk_widget_get_ancestor (GTK_WIDGET (self), PTYXIS_TYPE_TAB)))
+    dark = ptyxis_tab_get_dark (PTYXIS_TAB (tab));
 
   if (self->palette == NULL)
     self->palette = ptyxis_palette_lookup ("gnome");

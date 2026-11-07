@@ -73,6 +73,7 @@ struct _PtyxisTab
   PtyxisTabNotify          notify;
   GSignalGroup            *profile_signals;
   PtyxisPalette           *palette_override;
+  char                    *style_override;
 
   PtyxisTabState           state;
   GPid                     pid;
@@ -1241,6 +1242,7 @@ ptyxis_tab_dispose (GObject *object)
   g_clear_pointer (&self->command_line, g_free);
   g_clear_pointer (&self->program_name, g_free);
   g_clear_object (&self->palette_override);
+  g_clear_pointer (&self->style_override, g_free);
 
   G_OBJECT_CLASS (ptyxis_tab_parent_class)->dispose (object);
 }
@@ -2641,4 +2643,56 @@ ptyxis_tab_set_palette_override (PtyxisTab     *self,
       ptyxis_tab_update_palette (self);
       g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_PALETTE_OVERRIDE]);
     }
+}
+
+/**
+ * ptyxis_tab_get_style_override:
+ * @self: a #PtyxisTab
+ *
+ * Returns: "default", "force-light" or "force-dark" for this tab only.
+ */
+const char *
+ptyxis_tab_get_style_override (PtyxisTab *self)
+{
+  g_return_val_if_fail (PTYXIS_IS_TAB (self), "default");
+
+  return self->style_override ? self->style_override : "default";
+}
+
+/**
+ * ptyxis_tab_set_style_override:
+ * @self: a #PtyxisTab
+ * @style: (nullable): "default", "force-light" or "force-dark"
+ *
+ * Teman Ngoding: light/dark for this tab only, never the app-wide setting.
+ */
+void
+ptyxis_tab_set_style_override (PtyxisTab  *self,
+                               const char *style)
+{
+  g_return_if_fail (PTYXIS_IS_TAB (self));
+
+  if (style == NULL || style[0] == 0)
+    style = "default";
+
+  if (g_set_str (&self->style_override, style))
+    ptyxis_terminal_update_colors (self->terminal);
+}
+
+gboolean
+ptyxis_tab_get_dark (PtyxisTab *self)
+{
+  const char *style;
+
+  g_return_val_if_fail (PTYXIS_IS_TAB (self), FALSE);
+
+  style = ptyxis_tab_get_style_override (self);
+
+  if (g_str_equal (style, "force-dark"))
+    return TRUE;
+
+  if (g_str_equal (style, "force-light"))
+    return FALSE;
+
+  return adw_style_manager_get_dark (adw_style_manager_get_default ());
 }

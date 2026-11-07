@@ -19,8 +19,8 @@ semua file disalin apa adanya ke lokasi sistem.
    which codex opencode dsh                          # CLI lain (opsional, npm global; dsh = @deepseek-ai/dsh)
    ```
    - Versi GNOME beda → tambahkan versinya ke `shell-version` di `metadata.json` (tanya user dulu).
-   - Claude Code root belum ada → pasang dengan `sudo bash -c 'curl -fsSL https://claude.ai/install.sh | bash'`, lalu login lewat `bin/teman-ngoding-switch claude`.
-   - Antigravity CLI root belum ada → `sudo bash -c 'curl -fsSL https://antigravity.google/cli/install.sh | bash'`.
+   - CLI root yang belum ada dipasang otomatis oleh `install.sh` (versi terbaru) lewat `bin/teman-ngoding-install-cli`
+     (`SKIP_CLIS=1` untuk melewati, `UPDATE_CLIS=1` untuk menaikkan semua). Setelahnya login lewat `bin/teman-ngoding-switch <id>`.
    - Terminal dibangun dari `terminal/` oleh `install.sh` (butuh meson/ninja + header GTK4, libadwaita,
      VTE-GTK4, json-glib; di apt dipasang otomatis). Gagal build → `bin/teman-ngoding-terminal` jatuh ke `ptyxis` bawaan.
 
@@ -51,8 +51,9 @@ semua file disalin apa adanya ke lokasi sistem.
 - `buddy.js` membaca `accounts.root` / `accounts.yandi` dari `status.json` (Claude), jadi untuk user lain
   akun non-root tidak tampil sebagai cadangan. Ini bukan masalah selama Claude Code root sudah login.
 - Karakter didefinisikan di `CHARACTERS` (`buddy.js`). Id karakter (`claude`, `gemini`, `codex`, `opencode`, `deepseek`)
-  juga dipakai di `case` pada `bin/teman-ngoding-{run,launch,switch}`, di `AGENTS` pada `teman-ngoding-status`,
-  dan di kelas CSS `ngoding-theme-<id>` / `ngoding-chip-<id>`. Tambah karakter = ubah semua tempat itu.
+  juga dipakai di `case` pada `bin/teman-ngoding-{run,launch,switch,install-cli}`, di `AGENTS` pada `teman-ngoding-status`,
+  di kelas CSS `ngoding-theme-<id>` / `ngoding-chip-<id>`, dan di pemilih tab baru terminal
+  (`teman_ngoding_clis` di `ptyxis-window.c` + menu `new_cli_menu` di `ptyxis-window.ui`). Tambah karakter = ubah semua tempat itu.
 - Sisa limit (dan maskot tidur saat limit habis) hanya untuk Claude; karakter lain hanya menampilkan info akun.
 - **Jangan pernah commit** `.credentials.json`, `.claude.json`, `oauth_creds.json`, `auth.json`, `.env`, atau
   `status.json`. Token OAuth / API key hanya boleh dibaca oleh `teman-ngoding-status` (berjalan sebagai root) dan tidak boleh ditulis ke output.
@@ -77,16 +78,23 @@ terpisah. Dibangun dengan app-id/gschema `io.github.yandyrohman.TemanNgoding.Ter
 `/usr/local/lib/teman-ngoding/terminal` (bukan /usr/local/bin, supaya `ptyxis` bawaan tidak tertimpa).
 `bin/teman-ngoding-terminal` mengatur `GSETTINGS_SCHEMA_DIR`/`XDG_DATA_DIRS` lalu menjalankannya.
 
-- Tema per jendela: `palette-override` di `PtyxisTab` (menang atas palette profil), `session_palette` +
-  aksi `win.session-palette` / `win.session-palette-dialog` di `PtyxisWindow`. Binding palette profil di
-  `ptyxis-tab.ui` sengaja dihapus; palette terminal diatur `ptyxis_tab_update_palette()`.
-- Terang/gelap juga per jendela: aksi `win.interface-style` di window kini stateful milik jendela
-  (bukan setting global); terminal & dressing memakai `ptyxis_window_get_dark()`.
-- Palette di Preferences memakai aksi `session.palette` → jendela `transient-for` Preferences
+- Tab baru = pilih CLI: tombol "+" (`new_terminal_button`) kini `GtkMenuButton` dengan menu `new_cli_menu`;
+  `win.new-cli-tab(s)` membuat tab yang menjalankan `/usr/local/bin/teman-ngoding-run <id>` dengan judul
+  = nama CLI (`title-prefix` + `ignore-osc-title`). Id kosong = Terminal Biasa (`win.new-terminal`).
+  Shortcut new-tab & ☰ → Tab Baru memanggil `win.new-tab-picker` (membuka menu itu).
+- Tema per tab: `palette-override` dan `style-override` (default/force-light/force-dark) di `PtyxisTab`.
+  Aksi `win.session-palette(-dialog)` dan `win.interface-style` di `PtyxisWindow` bekerja pada tab aktif;
+  state-nya disinkronkan saat pindah tab (`ptyxis_window_sync_tab_theme`). Terminal memakai
+  `ptyxis_tab_get_dark()`, dressing/bingkai memakai `ptyxis_window_get_dark()` (= tab aktif). Binding palette
+  profil di `ptyxis-tab.ui` sengaja dihapus; palette terminal diatur `ptyxis_tab_update_palette()`.
+- Judul tab: klik dua kali tab → `win.set-title` (dialog `ptyxis-title-dialog`, sudah diterjemahkan).
+- Palette di Preferences memakai aksi `session.palette` → tab aktif jendela `transient-for` Preferences
   (di-set ulang tiap kali Preferences dibuka), bukan profil default.
 - `restore-session` default false (tiap klik = jendela bersih).
 - `install.sh` hanya rebuild kalau hash isi `terminal/` berubah (`.source-hash` di prefix).
-- Upgrade upstream: ganti isi `terminal/` dengan tag baru, lalu terapkan ulang diff commit tema per jendela.
+- Upgrade upstream: ganti isi `terminal/` dengan tag baru, lalu terapkan ulang `git diff ce6c5a7 -- terminal/`.
+- Tes UI tanpa memasang: build ke prefix sementara (`meson configure --prefix=…` lalu `meson install`), jalankan
+  dengan `GSETTINGS_SCHEMA_DIR=<prefix>/share/glib-2.0/schemas`.
 
 ## Copot pasang
 
@@ -97,7 +105,7 @@ rm -rf ~/.local/share/gnome-shell/extensions/teman-ngoding@yandi \
        ~/.local/share/icons/hicolor/scalable/apps/teman-ngoding.svg \
        ~/.config/teman-ngoding.json
 sudo systemctl disable --now teman-ngoding-status.timer
-sudo rm -rf /usr/local/bin/teman-ngoding-{launch,status,switch,run,terminal} \
+sudo rm -rf /usr/local/bin/teman-ngoding-{launch,status,switch,run,terminal,install-cli} \
             /usr/local/lib/teman-ngoding /run/teman-ngoding \
             /etc/systemd/system/teman-ngoding-status.{service,timer} \
             /etc/polkit-1/rules.d/49-teman-ngoding-status.rules

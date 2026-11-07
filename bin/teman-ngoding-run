@@ -20,19 +20,18 @@ esac
 
 cd "$HOME" 2>/dev/null || cd /
 
-# DeepSeek Harness belum terpasang: tawarkan pasang versi terbaru dari npm
-if [ "$agent" = deepseek ] && ! PATH="/usr/local/bin:/usr/bin:/bin" command -v dsh >/dev/null; then
-    echo "🐋 DeepSeek Harness (dsh) belum terpasang."
-    read -rp "Pasang sekarang (sudo npm install -g @deepseek-ai/dsh@latest)? [Y/n] " answer
+# CLI belum terpasang (mis. dilewati saat install): tawarkan pasang versi terbaru
+if ! sudo /usr/local/bin/teman-ngoding-install-cli --check "$agent"; then
+    echo "📦 $name belum terpasang."
+    read -rp "Pasang sekarang (versi terbaru)? [Y/n] " answer
     case "$answer" in
         [nN]*) exit 0 ;;
     esac
-    if ! sudo npm install -g @deepseek-ai/dsh@latest; then
+    if ! sudo /usr/local/bin/teman-ngoding-install-cli "$agent"; then
         echo
-        read -rp "Gagal memasang DeepSeek Harness. Tekan Enter untuk menutup..."
+        read -rp "Gagal memasang $name. Tekan Enter untuk menutup..."
         exit 1
     fi
-    sudo systemctl start teman-ngoding-status.service 2>/dev/null
     echo
 fi
 

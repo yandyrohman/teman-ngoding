@@ -62,4 +62,5 @@ case "$agent" in
     *) agent=claude; title="Claude Code" ;;
 esac
 
-exec /usr/local/bin/teman-ngoding-terminal --new-window --title="Teman Ngoding – $title" -x "/usr/local/bin/teman-ngoding-run $agent"
+# Judul tab = nama CLI (bisa diganti: klik dua kali tab-nya, atau ☰ → Ganti Judul Tab…)
+exec /usr/local/bin/teman-ngoding-terminal --new-window --title="$title" -x "/usr/local/bin/teman-ngoding-run $agent"

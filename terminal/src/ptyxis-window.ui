@@ -87,8 +87,7 @@
                 <lookup name="shortcuts">PtyxisWindow</lookup>
               </lookup>
             </binding>
-            <property name="action">action(win.new-tab)</property>
-            <property name="arguments">('','')</property>
+            <property name="action">action(win.new-tab-picker)</property>
           </object>
         </child>
         <child>
@@ -419,11 +418,10 @@
                               <class name="image-button"/>
                             </style>
                             <child>
-                              <object class="GtkButton" id="new_terminal_button">
+                              <object class="GtkMenuButton" id="new_terminal_button">
                                 <property name="icon-name">tab-new-symbolic</property>
-                                <property name="tooltip-text" translatable="yes">New Terminal</property>
-                                <property name="action-name">win.new-terminal</property>
-                                <property name="action-target">('default','')</property>
+                                <property name="tooltip-text">Tab Baru (pilih CLI)</property>
+                                <property name="menu-model">new_cli_menu</property>
                                 <property name="focus-on-click">false</property>
                               </object>
                             </child>
@@ -758,16 +756,19 @@
     <section>
       <item>
         <attribute name="id">session-palette</attribute>
-        <attribute name="label">Tema _Sesi Ini…</attribute>
+        <attribute name="label">Tema _Tab Ini…</attribute>
         <attribute name="action">win.session-palette-dialog</attribute>
+      </item>
+      <item>
+        <attribute name="label">Ganti _Judul Tab…</attribute>
+        <attribute name="action">win.set-title</attribute>
       </item>
     </section>
     <section>
       <item>
         <attribute name="id">new-tab</attribute>
-        <attribute name="label" translatable="yes">New _Tab</attribute>
-        <attribute name="action">win.new-tab</attribute>
-        <attribute name="target" type="(ss)">('default','')</attribute>
+        <attribute name="label">_Tab Baru…</attribute>
+        <attribute name="action">win.new-tab-picker</attribute>
         <attribute name="hidden-when">action-disabled</attribute>
       </item>
       <item>
@@ -817,6 +818,43 @@
       </item>
     </section>
   </menu>
+  <menu id="new_cli_menu">
+    <section>
+      <attribute name="label">Buka di tab baru</attribute>
+      <item>
+        <attribute name="label">Claude Code</attribute>
+        <attribute name="action">win.new-cli-tab</attribute>
+        <attribute name="target">claude</attribute>
+      </item>
+      <item>
+        <attribute name="label">Antigravity CLI</attribute>
+        <attribute name="action">win.new-cli-tab</attribute>
+        <attribute name="target">gemini</attribute>
+      </item>
+      <item>
+        <attribute name="label">Codex CLI</attribute>
+        <attribute name="action">win.new-cli-tab</attribute>
+        <attribute name="target">codex</attribute>
+      </item>
+      <item>
+        <attribute name="label">OpenCode</attribute>
+        <attribute name="action">win.new-cli-tab</attribute>
+        <attribute name="target">opencode</attribute>
+      </item>
+      <item>
+        <attribute name="label">DeepSeek Harness</attribute>
+        <attribute name="action">win.new-cli-tab</attribute>
+        <attribute name="target">deepseek</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label">Terminal Biasa</attribute>
+        <attribute name="action">win.new-cli-tab</attribute>
+        <attribute name="target"></attribute>
+      </item>
+    </section>
+  </menu>
   <menu id="tab_menu">
     <section>
       <item>
@@ -850,7 +888,7 @@
     <section>
       <item>
         <attribute name="id">set-title</attribute>
-        <attribute name="label" translatable="yes">Set Title</attribute>
+        <attribute name="label">Ganti _Judul…</attribute>
         <attribute name="action">win.set-title</attribute>
       </item>
     </section>

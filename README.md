@@ -16,17 +16,22 @@ Semua karakter memakai kerangka yang sama, jadi semua animasi, adegan, dan inter
 berlaku untuk semuanya. Pilihan karakter disimpan di `~/.config/teman-ngoding.json`.
 Kartu "Akun Saya" menampilkan akun CLI karakter aktif; sisa limit hanya tersedia untuk Claude Code.
 
-## Terminal sendiri, tema per jendela
+## Terminal sendiri: pilih CLI per tab, tema & judul per tab
 
 CLI dibuka di terminal milik Teman Ngoding sendiri (namanya juga "Teman Ngoding"), yaitu Ptyxis 50.1 (folder `terminal/`) yang dibangun
 dengan app-id dan setting sendiri (`io.github.yandyrohman.TemanNgoding.Terminal`). Ptyxis bawaan
 sistem tidak diubah sama sekali.
 
-Tiap jendela punya tema sendiri: buka menu **☰ → Tema Sesi Ini…** (atau palette di
-Preferences), pilih palette, dan hanya jendela itu yang berubah. Tombol Sistem/Terang/Gelap
-di atas menu ☰ juga hanya berlaku untuk jendela itu. Tab baru di jendela yang sama ikut temanya. **Ikuti Default**
-mengembalikan jendela ke palette profil. Tema sesi tidak disimpan; jendela baru selalu mulai
-dari tema default.
+- **Tab baru = pilih CLI dulu.** Tombol **+** di kiri atas (atau `Ctrl+Shift+T`, atau ☰ → **Tab Baru…**)
+  membuka pilihan: Claude Code, Antigravity CLI, Codex CLI, OpenCode, DeepSeek Harness, atau
+  **Terminal Biasa** (shell user). Panah ▾ di sebelahnya tetap berisi profil/container bawaan Ptyxis.
+- **Tema per tab.** ☰ → **Tema Tab Ini…** (atau palette di Preferences) dan tombol Sistem/Terang/Gelap
+  di atas menu ☰ hanya mengubah tab yang sedang aktif. Tiap tab menyimpan temanya sendiri (ikut terbawa
+  kalau tab dipindah ke jendela lain); bingkai jendela mengikuti tab yang aktif. Tab baru mulai dari tema
+  default; **Ikuti Default** mengembalikan tab ke palette profil. Tema tidak disimpan setelah tab ditutup.
+- **Judul tab bisa diganti.** Defaultnya nama CLI-nya (mis. "Claude Code"; judul yang dikirim CLI
+  diabaikan). Ganti lewat **klik dua kali** pada tab, klik kanan tab → **Ganti Judul…**, ☰ →
+  **Ganti Judul Tab…**, atau shortcut Set Title. Judul dikosongkan = kembali memakai judul dari program.
 
 Perubahan terhadap upstream: `git diff ce6c5a7 -- terminal/` (commit vendor Ptyxis 50.1 yang masih asli).
 
@@ -38,7 +43,8 @@ Perubahan terhadap upstream: `git diff ce6c5a7 -- terminal/` (commit vendor Ptyx
 | `bin/teman-ngoding-launch` | Dipanggil ikon aplikasi: nyalakan maskot / buka CLI karakter aktif | `/usr/local/bin/` |
 | `bin/teman-ngoding-run` | Jalankan `claude` / `agy` / `codex` / `opencode` / `dsh` sebagai root | `/usr/local/bin/` |
 | `bin/teman-ngoding-terminal` | Buka terminal Teman Ngoding (fallback ke `ptyxis` bawaan) | `/usr/local/bin/` |
-| `terminal/` | Source Ptyxis 50.1 + fitur tema per jendela, dibangun oleh `install.sh` | `/usr/local/lib/teman-ngoding/terminal/` |
+| `bin/teman-ngoding-install-cli` | Pasang semua CLI untuk root, versi terbaru (`--update` = naikkan versi, `--check` = cek saja) | `/usr/local/bin/` |
+| `terminal/` | Source Ptyxis 50.1 + pemilih CLI di tab baru, tema & judul per tab; dibangun oleh `install.sh` | `/usr/local/lib/teman-ngoding/terminal/` |
 | `bin/teman-ngoding-switch` | Ganti akun CLI (login via Chrome user, atau API key) | `/usr/local/bin/` |
 | `bin/teman-ngoding-status` | Ambil info akun + limit → `/run/teman-ngoding/status.json` | `/usr/local/bin/` |
 | `lib/open-in-user-chrome` | Buka URL login di Chrome milik user (bukan root) | `/usr/local/lib/teman-ngoding/` |
@@ -53,8 +59,11 @@ Perubahan terhadap upstream: `git diff ce6c5a7 -- terminal/` (commit vendor Ptyx
 - Untuk membangun terminal: `meson`, `ninja` dan header GTK4/libadwaita/VTE-GTK4/json-glib
   (di Ubuntu/Debian `install.sh` memasangnya sendiri lewat `apt-get`). Kalau build gagal,
   Teman Ngoding memakai `ptyxis` bawaan.
-- CLI yang mau dipakai, terpasang untuk root:
+- CLI AI untuk root: **dipasang otomatis oleh `install.sh` (versi terbaru)** lewat
+  `teman-ngoding-install-cli`, butuh `curl` dan `npm` (di apt dipasang sendiri). Yang sudah ada dilewati.
+  CLI yang belum terpasang juga ditawarkan untuk dipasang saat pertama dibuka. Rinciannya:
   - [Claude Code](https://claude.com/claude-code) di `/root/.local/bin/claude`
+    (`curl -fsSL https://claude.ai/install.sh | bash -s latest`)
   - Antigravity CLI (karakter Gemini) di `/root/.local/bin/agy`:
     `sudo bash -c 'curl -fsSL https://antigravity.google/cli/install.sh | bash'`
   - Codex CLI: `sudo npm install -g @openai/codex`
@@ -66,6 +75,9 @@ Perubahan terhadap upstream: `git diff ce6c5a7 -- terminal/` (commit vendor Ptyx
 ```bash
 ./install.sh                       # sebagai user desktop (pakai sudo)
 sudo TARGET_USER=yandi ./install.sh   # atau langsung sebagai root
+UPDATE_CLIS=1 ./install.sh         # sekalian naikkan semua CLI ke versi terbaru
+SKIP_CLIS=1 ./install.sh           # jangan pasang CLI apa pun
+sudo teman-ngoding-install-cli --update   # nanti-nanti: update semua CLI saja
 ```
 
 Script akan membersihkan Claude Buddy versi lama (kalau ada, posisi maskot dibawa),

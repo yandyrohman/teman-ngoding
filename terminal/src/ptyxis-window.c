@@ -53,7 +53,7 @@ struct _PtyxisWindow
   PtyxisShortcuts       *shortcuts;
   PtyxisParkingLot      *parking_lot;
 
-  GtkButton             *new_terminal_button;
+  GtkMenuButton         *new_terminal_button;
   GtkMenuButton         *new_terminal_menu_button;
   GtkSeparator          *new_terminal_separator;
   PtyxisFindBar         *find_bar;
@@ -84,9 +84,8 @@ struct _PtyxisWindow
   PtyxisWindowDressing  *dressing;
   GtkBox                *visual_bell;
   GSimpleAction         *interface_style_action;
-  char                  *session_style;
-  PtyxisPalette         *session_palette;
   AdwDialog             *session_palette_dialog;
+  GMenu                 *new_cli_menu;
 
   guint                  visual_bell_source;
   guint                  focus_active_tab_source;
@@ -282,6 +281,30 @@ ptyxis_window_tab_bar_click_pressed_cb (PtyxisWindow    *self,
   gtk_gesture_set_state (GTK_GESTURE (click), GTK_EVENT_SEQUENCE_CLAIMED);
 }
 
+/* Teman Ngoding: double-click a tab to rename it */
+static void
+ptyxis_window_tab_bar_double_click_cb (PtyxisWindow    *self,
+                                       guint            n_press,
+                                       double           x,
+                                       double           y,
+                                       GtkGestureClick *click)
+{
+  PtyxisTab *tab;
+
+  g_assert (PTYXIS_IS_WINDOW (self));
+  g_assert (GTK_IS_GESTURE_CLICK (click));
+
+  if (n_press != 2)
+    return;
+
+  if (!(tab = ptyxis_window_get_tab_at_tab_bar_point (self, &GRAPHENE_POINT_INIT (x, y))))
+    return;
+
+  gtk_gesture_set_state (GTK_GESTURE (click), GTK_EVENT_SEQUENCE_CLAIMED);
+  ptyxis_window_set_active_tab (self, tab);
+  gtk_widget_activate_action (GTK_WIDGET (self), "win.set-title", NULL);
+}
+
 static gboolean
 ptyxis_window_focus_active_tab_cb (gpointer data)
 {
@@ -423,9 +446,7 @@ ptyxis_window_page_attached_cb (PtyxisWindow *self,
   g_assert (ADW_IS_TAB_PAGE (page));
   g_assert (ADW_IS_TAB_VIEW (tab_view));
 
-  /* Teman Ngoding: every tab in this window shares the window's session palette */
-  ptyxis_tab_set_palette_override (PTYXIS_TAB (adw_tab_page_get_child (page)),
-                                   self->session_palette);
+  /* Teman Ngoding: each tab keeps its own theme, even when moved between windows */
   ptyxis_terminal_update_colors (ptyxis_tab_get_terminal (PTYXIS_TAB (adw_tab_page_get_child (page))));
 
   update_visible_and_maybe_close (self);
@@ -459,6 +480,8 @@ bind_title_cb (GBinding     *binding,
 
   return TRUE;
 }
+
+static void ptyxis_window_sync_tab_theme (PtyxisWindow *self);
 
 static void
 ptyxis_window_notify_selected_page_cb (PtyxisWindow *self,
@@ -530,6 +553,8 @@ ptyxis_window_notify_selected_page_cb (PtyxisWindow *self,
     g_action_map_add_action (G_ACTION_MAP (self), G_ACTION (read_only));
 
   g_binding_group_set_source (self->active_tab_bindings, tab);
+
+  ptyxis_window_sync_tab_theme (self);
 
   g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_ACTIVE_TAB]);
 
@@ -723,6 +748,94 @@ ptyxis_window_new_terminal_action (GtkWidget  *widget,
     ptyxis_window_new_window_action (widget, NULL, param);
   else
     ptyxis_window_new_tab_action (widget, NULL, param);
+}
+
+/* ---- Teman Ngoding: a new tab first asks which CLI to open ------------ */
+
+#define TEMAN_NGODING_RUN "/usr/local/bin/teman-ngoding-run"
+
+/* Same ids as bin/teman-ngoding-run; the title is the tab's default (editable) title */
+static const struct {
+  const char *id;
+  const char *title;
+} teman_ngoding_clis[] = {
+  { "claude",   "Claude Code" },
+  { "gemini",   "Antigravity CLI" },
+  { "codex",    "Codex CLI" },
+  { "opencode", "OpenCode" },
+  { "deepseek", "DeepSeek Harness" },
+};
+
+static void
+ptyxis_window_new_cli_tab_action (GtkWidget  *widget,
+                                  const char *action_name,
+                                  GVariant   *param)
+{
+  PtyxisWindow *self = (PtyxisWindow *)widget;
+  g_autoptr(PtyxisProfile) profile = NULL;
+  const char *id = g_variant_get_string (param, NULL);
+  const char *title = NULL;
+  PtyxisTab *active_tab;
+  PtyxisTab *tab;
+
+  g_assert (PTYXIS_IS_WINDOW (self));
+
+  for (guint i = 0; i < G_N_ELEMENTS (teman_ngoding_clis); i++)
+    {
+      if (g_str_equal (id, teman_ngoding_clis[i].id))
+        {
+          title = teman_ngoding_clis[i].title;
+          break;
+        }
+    }
+
+  /* Unknown id ("" = Terminal Biasa): a plain shell tab like upstream */
+  if (title == NULL)
+    {
+      gtk_widget_activate_action (widget, "win.new-terminal", "(ss)", "default", "");
+      return;
+    }
+
+  profile = ptyxis_application_dup_default_profile (PTYXIS_APPLICATION_DEFAULT);
+  tab = ptyxis_tab_new (profile);
+
+  /* Not ptyxis_window_apply_current_settings(): that may carry over the active
+   * tab's container, but the CLI must always run on the host (as root).
+   */
+  if ((active_tab = ptyxis_window_get_active_tab (self)))
+    {
+      PtyxisTerminal *terminal = ptyxis_tab_get_terminal (active_tab);
+
+      long columns = vte_terminal_get_column_count (VTE_TERMINAL (terminal));
+      long rows = vte_terminal_get_row_count (VTE_TERMINAL (terminal));
+
+      ptyxis_tab_set_zoom (tab, ptyxis_tab_get_zoom (active_tab));
+
+      if (columns > 0 && rows > 0)
+        vte_terminal_set_size (VTE_TERMINAL (ptyxis_tab_get_terminal (tab)), columns, rows);
+    }
+
+  ptyxis_tab_set_command (tab, (const char * const []) { TEMAN_NGODING_RUN, id, NULL });
+  ptyxis_tab_set_title_prefix (tab, title);
+  ptyxis_tab_set_ignore_osc_title (tab, TRUE);
+
+  ptyxis_window_add_tab (self, tab);
+  ptyxis_window_set_active_tab (self, tab);
+  ptyxis_tab_grab_focus (tab);
+}
+
+static void
+ptyxis_window_new_tab_picker_action (GtkWidget  *widget,
+                                     const char *action_name,
+                                     GVariant   *param)
+{
+  PtyxisWindow *self = (PtyxisWindow *)widget;
+
+  g_assert (PTYXIS_IS_WINDOW (self));
+
+  /* The picker hangs off the header bar's "+" button, which may be hidden in fullscreen */
+  ptyxis_fullscreen_box_reveal (self->fullscreen_box);
+  gtk_menu_button_popup (self->new_terminal_button);
 }
 
 static void
@@ -1216,7 +1329,7 @@ ptyxis_window_set_title_action (GtkWidget  *widget,
 
   dialog = g_object_new (PTYXIS_TYPE_TITLE_DIALOG,
                          "tab", active_tab,
-                         "title", _("Set Title"),
+                         "title", "Ganti Judul Tab",
                          NULL);
 
   adw_dialog_set_presentation_mode (dialog, ADW_DIALOG_FLOATING);
@@ -1568,7 +1681,11 @@ ptyxis_window_interface_style_change_state_cb (PtyxisWindow  *self,
   g_assert (PTYXIS_IS_WINDOW (self));
 
   g_simple_action_set_state (action, value);
-  g_set_str (&self->session_style, g_variant_get_string (value, NULL));
+
+  if (ptyxis_window_get_active_tab (self) != NULL)
+    ptyxis_tab_set_style_override (ptyxis_window_get_active_tab (self),
+                                   g_variant_get_string (value, NULL));
+
   ptyxis_window_refresh_colors (self);
 }
 
@@ -1582,11 +1699,11 @@ ptyxis_window_add_theme_controls (PtyxisWindow *self)
 
   g_assert (PTYXIS_IS_WINDOW (self));
 
-  /* Teman Ngoding: light/dark only for this window, never the app-wide setting */
+  /* Teman Ngoding: light/dark only for the active tab, never the app-wide setting */
   (void)settings;
   self->interface_style_action = g_simple_action_new_stateful ("interface-style",
                                                                G_VARIANT_TYPE_STRING,
-                                                               g_variant_new_string (self->session_style));
+                                                               g_variant_new_string ("default"));
   g_signal_connect_object (self->interface_style_action,
                            "change-state",
                            G_CALLBACK (ptyxis_window_interface_style_change_state_cb),
@@ -1655,18 +1772,18 @@ notify_decoration_layout_cb (PtyxisWindow *self,
 }
 
 
-/* ---- Teman Ngoding: per-window ("session") palette ------------------- */
+/* ---- Teman Ngoding: per-tab ("session") palette & light/dark ---------- */
 
+/* The window chrome follows the active tab, so it matches the visible terminal */
 gboolean
 ptyxis_window_get_dark (PtyxisWindow *self)
 {
+  PtyxisTab *tab;
+
   g_return_val_if_fail (PTYXIS_IS_WINDOW (self), FALSE);
 
-  if (g_strcmp0 (self->session_style, "force-dark") == 0)
-    return TRUE;
-
-  if (g_strcmp0 (self->session_style, "force-light") == 0)
-    return FALSE;
+  if ((tab = ptyxis_window_get_active_tab (self)))
+    return ptyxis_tab_get_dark (tab);
 
   return adw_style_manager_get_dark (adw_style_manager_get_default ());
 }
@@ -1674,17 +1791,7 @@ ptyxis_window_get_dark (PtyxisWindow *self)
 static void
 ptyxis_window_refresh_colors (PtyxisWindow *self)
 {
-  guint n_pages;
-
   g_assert (PTYXIS_IS_WINDOW (self));
-
-  n_pages = adw_tab_view_get_n_pages (self->tab_view);
-  for (guint i = 0; i < n_pages; i++)
-    {
-      AdwTabPage *page = adw_tab_view_get_nth_page (self->tab_view, i);
-
-      ptyxis_terminal_update_colors (ptyxis_tab_get_terminal (PTYXIS_TAB (adw_tab_page_get_child (page))));
-    }
 
   if (self->dressing != NULL)
     ptyxis_window_dressing_queue_update (self->dressing);
@@ -1702,9 +1809,6 @@ static PtyxisPalette *
 ptyxis_window_get_effective_palette (PtyxisWindow *self)
 {
   PtyxisTab *tab;
-
-  if (self->session_palette != NULL)
-    return self->session_palette;
 
   if ((tab = ptyxis_window_get_active_tab (self)))
     return ptyxis_terminal_get_palette (ptyxis_tab_get_terminal (tab));
@@ -1743,24 +1847,34 @@ ptyxis_window_session_palette_update_selection (PtyxisWindow *self)
     }
 }
 
+/* Sets the palette of the active tab only; %NULL follows the profile again */
 void
 ptyxis_window_set_session_palette (PtyxisWindow  *self,
                                    PtyxisPalette *palette)
 {
-  guint n_pages;
+  PtyxisTab *tab;
 
   g_return_if_fail (PTYXIS_IS_WINDOW (self));
 
-  g_set_object (&self->session_palette, palette);
+  if ((tab = ptyxis_window_get_active_tab (self)))
+    ptyxis_tab_set_palette_override (tab, palette);
 
-  n_pages = adw_tab_view_get_n_pages (self->tab_view);
-  for (guint i = 0; i < n_pages; i++)
-    {
-      AdwTabPage *page = adw_tab_view_get_nth_page (self->tab_view, i);
+  ptyxis_window_session_palette_update_selection (self);
+}
 
-      ptyxis_tab_set_palette_override (PTYXIS_TAB (adw_tab_page_get_child (page)), palette);
-    }
+static void
+ptyxis_window_sync_tab_theme (PtyxisWindow *self)
+{
+  PtyxisTab *tab;
 
+  g_assert (PTYXIS_IS_WINDOW (self));
+
+  if (self->interface_style_action != NULL &&
+      (tab = ptyxis_window_get_active_tab (self)))
+    g_simple_action_set_state (self->interface_style_action,
+                               g_variant_new_string (ptyxis_tab_get_style_override (tab)));
+
+  ptyxis_window_refresh_colors (self);
   ptyxis_window_session_palette_update_selection (self);
 }
 
@@ -1903,7 +2017,7 @@ ptyxis_window_session_palette_dialog_action (GtkWidget  *widget,
   reset_target = g_variant_take_ref (g_variant_new_string (""));
   reset = g_object_new (GTK_TYPE_BUTTON,
                         "label", "Ikuti Default",
-                        "tooltip-text", "Kembali ke tema default profil",
+                        "tooltip-text", "Kembalikan tab ini ke tema default profil",
                         "action-name", "win.session-palette",
                         "action-target", reset_target,
                         NULL);
@@ -1923,7 +2037,7 @@ ptyxis_window_session_palette_dialog_action (GtkWidget  *widget,
   adw_toolbar_view_set_content (ADW_TOOLBAR_VIEW (toolbar_view), scroller);
 
   dialog = adw_dialog_new ();
-  adw_dialog_set_title (dialog, "Tema Sesi Ini");
+  adw_dialog_set_title (dialog, "Tema Tab Ini");
   adw_dialog_set_content_width (dialog, 640);
   adw_dialog_set_content_height (dialog, 560);
   adw_dialog_set_child (dialog, toolbar_view);
@@ -2274,8 +2388,6 @@ ptyxis_window_dispose (GObject *object)
   g_clear_handle_id (&self->focus_active_tab_source, g_source_remove);
   g_clear_object (&self->parking_lot);
   g_clear_object (&self->interface_style_action);
-  g_clear_object (&self->session_palette);
-  g_clear_pointer (&self->session_style, g_free);
 
   G_OBJECT_CLASS (ptyxis_window_parent_class)->dispose (object);
 }
@@ -2381,6 +2493,7 @@ ptyxis_window_class_init (PtyxisWindowClass *klass)
   gtk_widget_class_bind_template_child (widget_class, PtyxisWindow, menu_search_stack);
   gtk_widget_class_bind_template_child (widget_class, PtyxisWindow, new_tab_box);
   gtk_widget_class_bind_template_child (widget_class, PtyxisWindow, new_terminal_button);
+  gtk_widget_class_bind_template_child (widget_class, PtyxisWindow, new_cli_menu);
   gtk_widget_class_bind_template_child (widget_class, PtyxisWindow, new_terminal_menu_button);
   gtk_widget_class_bind_template_child (widget_class, PtyxisWindow, new_terminal_separator);
   gtk_widget_class_bind_template_child (widget_class, PtyxisWindow, not_containers);
@@ -2414,6 +2527,8 @@ ptyxis_window_class_init (PtyxisWindowClass *klass)
   gtk_widget_class_install_action (widget_class, "win.primary-menu", NULL, ptyxis_window_primary_menu_action);
   gtk_widget_class_install_action (widget_class, "win.tab-menu", NULL, ptyxis_window_tab_menu_action);
   gtk_widget_class_install_action (widget_class, "win.new-tab", "(ss)", ptyxis_window_new_tab_action);
+  gtk_widget_class_install_action (widget_class, "win.new-cli-tab", "s", ptyxis_window_new_cli_tab_action);
+  gtk_widget_class_install_action (widget_class, "win.new-tab-picker", NULL, ptyxis_window_new_tab_picker_action);
   gtk_widget_class_install_action (widget_class, "win.session-palette", "s", ptyxis_window_session_palette_action);
   gtk_widget_class_install_action (widget_class, "win.session-palette-dialog", NULL, ptyxis_window_session_palette_dialog_action);
   gtk_widget_class_install_action (widget_class, "win.new-window", "(ss)", ptyxis_window_new_window_action);
@@ -2458,7 +2573,6 @@ ptyxis_window_init (PtyxisWindow *self)
   GtkGestureClick *click;
 
   self->active_tab_bindings = g_binding_group_new ();
-  self->session_style = g_strdup ("default");
   self->profile_bindings = g_binding_group_new ();
 
   self->selected_page_signals = g_signal_group_new (ADW_TYPE_TAB_PAGE);
@@ -2537,6 +2651,18 @@ ptyxis_window_init (PtyxisWindow *self)
   g_signal_connect_object (click,
                            "pressed",
                            G_CALLBACK (ptyxis_window_tab_bar_click_pressed_cb),
+                           self,
+                           G_CONNECT_SWAPPED);
+  gtk_widget_add_controller (GTK_WIDGET (self->tab_bar),
+                             GTK_EVENT_CONTROLLER (g_steal_pointer (&click)));
+
+  click = GTK_GESTURE_CLICK (gtk_gesture_click_new ());
+  gtk_gesture_single_set_button (GTK_GESTURE_SINGLE (click), GDK_BUTTON_PRIMARY);
+  gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (click),
+                                              GTK_PHASE_CAPTURE);
+  g_signal_connect_object (click,
+                           "pressed",
+                           G_CALLBACK (ptyxis_window_tab_bar_double_click_cb),
                            self,
                            G_CONNECT_SWAPPED);
   gtk_widget_add_controller (GTK_WIDGET (self->tab_bar),
@@ -2701,6 +2827,8 @@ ptyxis_window_new_for_command (PtyxisProfile      *profile,
       self->single_terminal_mode = !!(flags & G_APPLICATION_NON_UNIQUE);
 
       gtk_widget_action_set_enabled (GTK_WIDGET (self), "win.new-tab", FALSE);
+      gtk_widget_action_set_enabled (GTK_WIDGET (self), "win.new-cli-tab", FALSE);
+      gtk_widget_action_set_enabled (GTK_WIDGET (self), "win.new-tab-picker", FALSE);
       gtk_widget_action_set_enabled (GTK_WIDGET (self), "win.new-window", FALSE);
       gtk_widget_action_set_enabled (GTK_WIDGET (self), "win.new-terminal", FALSE);
       gtk_widget_action_set_enabled (GTK_WIDGET (self), "win.tab-overview", FALSE);

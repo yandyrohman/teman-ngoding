@@ -1,0 +1,110 @@
+#!/bin/bash
+# Pasang CLI AI untuk root, selalu versi terbaru:
+#   teman-ngoding-install-cli [--update] [--check] [claude|gemini|codex|opencode|deepseek|all]...
+# Tanpa nama CLI = semuanya.
+#   (default)  pasang yang belum ada
+#   --update   pasang ulang semua yang dipilih ke versi terbaru
+#   --check    tidak memasang apa pun; keluar 0 kalau semua yang dipilih sudah terpasang
+# Dipanggil install.sh (pasang pertama kali) dan teman-ngoding-run (CLI belum ada saat dibuka).
+set -u
+
+[ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
+
+export HOME=/root
+export PATH="/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
+ALL=(claude gemini codex opencode deepseek)
+
+mode=missing
+agents=()
+for arg in "$@"; do
+    case "$arg" in
+        --update) mode=update ;;
+        --check) mode=check ;;
+        all) agents+=("${ALL[@]}") ;;
+        claude|gemini|codex|opencode|deepseek) agents+=("$arg") ;;
+        *) echo "Tidak dikenal: $arg" >&2; exit 2 ;;
+    esac
+done
+[ ${#agents[@]} -eq 0 ] && agents=("${ALL[@]}")
+
+name_of() {
+    case "$1" in
+        claude) echo "Claude Code" ;;
+        gemini) echo "Antigravity CLI" ;;
+        codex) echo "Codex CLI" ;;
+        opencode) echo "OpenCode" ;;
+        deepseek) echo "DeepSeek Harness" ;;
+    esac
+}
+
+# Lokasi yang sama dengan yang dijalankan teman-ngoding-run
+installed() {
+    case "$1" in
+        claude) [ -x /root/.local/bin/claude ] ;;
+        gemini) [ -x /root/.local/bin/agy ] ;;
+        codex) command -v codex >/dev/null ;;
+        opencode) command -v opencode >/dev/null ;;
+        deepseek) command -v dsh >/dev/null ;;
+    esac
+}
+
+if [ "$mode" = check ]; then
+    for agent in "${agents[@]}"; do
+        installed "$agent" || exit 1
+    done
+    exit 0
+fi
+
+apt_install() {
+    command -v apt-get >/dev/null || return 1
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"
+}
+
+need_curl() {
+    command -v curl >/dev/null || apt_install curl ca-certificates || {
+        echo "   curl belum ada dan tidak bisa dipasang otomatis." >&2
+        return 1
+    }
+}
+
+need_npm() {
+    command -v npm >/dev/null || apt_install nodejs npm || {
+        echo "   npm (Node.js) belum ada dan tidak bisa dipasang otomatis." >&2
+        return 1
+    }
+}
+
+install_agent() {
+    case "$1" in
+        # "latest" = rilis terbaru (bukan kanal stable yang tertinggal sekitar seminggu)
+        claude) need_curl && curl -fsSL https://claude.ai/install.sh | bash -s latest ;;
+        gemini) need_curl && curl -fsSL https://antigravity.google/cli/install.sh | bash ;;
+        codex) need_npm && npm install -g @openai/codex@latest ;;
+        opencode) need_npm && npm install -g opencode-ai@latest ;;
+        deepseek) need_npm && npm install -g @deepseek-ai/dsh@latest ;;
+    esac
+}
+
+failed=()
+for agent in "${agents[@]}"; do
+    name="$(name_of "$agent")"
+    if [ "$mode" = missing ] && installed "$agent"; then
+        echo "   ✓ $name sudah terpasang"
+        continue
+    fi
+    echo "   → Memasang $name (versi terbaru)…"
+    if install_agent "$agent" && installed "$agent"; then
+        echo "   ✓ $name terpasang"
+    else
+        echo "   ✗ $name gagal dipasang" >&2
+        failed+=("$name")
+    fi
+done
+
+# Perbarui info akun di maskot
+systemctl start teman-ngoding-status.service 2>/dev/null || true
+
+if [ ${#failed[@]} -gt 0 ]; then
+    echo "   Gagal: ${failed[*]}. Coba lagi nanti: sudo teman-ngoding-install-cli" >&2
+    exit 1
+fi

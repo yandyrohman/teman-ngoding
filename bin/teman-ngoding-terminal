@@ -1,7 +1,7 @@
 #!/bin/bash
 # Terminal khusus Teman Ngoding: Ptyxis (dari folder terminal/) dengan app-id & setting sendiri,
-# jadi tidak mengubah Ptyxis bawaan. Tiap jendela bisa punya tema sendiri lewat
-# menu ☰ → "Tema Sesi Ini…". Kalau belum terpasang, pakai Ptyxis bawaan.
+# jadi tidak mengubah Ptyxis bawaan. Tab baru memilih CLI dulu; tiap tab punya tema & judul sendiri
+# (menu ☰ → "Tema Tab Ini…" / "Ganti Judul Tab…"). Kalau belum terpasang, pakai Ptyxis bawaan.
 PREFIX=/usr/local/lib/teman-ngoding/terminal
 
 if [ -x "$PREFIX/bin/ptyxis" ]; then

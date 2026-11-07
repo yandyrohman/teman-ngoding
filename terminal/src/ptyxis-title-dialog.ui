@@ -33,14 +33,14 @@
             <property name="margin-top">9</property>
             <child>
               <object class="AdwEntryRow" id="entry">
-                <property name="title" translatable="yes">Title</property>
+                <property name="title">Judul</property>
                 <signal name="activate" handler="ptyxis_title_dialog_activate_cb" swapped="true"/>
               </object>
             </child>
             <child>
               <object class="AdwSwitchRow" id="toggle_prefix_only">
-                <property name="title" translatable="yes">Include Process Title</property>
-                <property name="subtitle" translatable="yes">Append title from Shell application</property>
+                <property name="title">Tambahkan Judul dari Program</property>
+                <property name="subtitle">Judul yang dikirim CLI/shell ditambahkan di belakang. Kosongkan judul untuk memakai judul program saja.</property>
               </object>
             </child>
           </object>

@@ -78,7 +78,7 @@ install_stdin() {
 
 echo "==> File sistem (${SUDO:-root})"
 $SUDO install -m 755 bin/teman-ngoding-launch bin/teman-ngoding-switch bin/teman-ngoding-run \
-    bin/teman-ngoding-terminal /usr/local/bin/
+    bin/teman-ngoding-terminal bin/teman-ngoding-install-cli /usr/local/bin/
 # Script status & polkit menyebut nama user; sesuaikan dengan user yang memasang
 sed "s|('yandi', '/home/yandi')|('$TARGET_USER', '$TARGET_HOME')|" bin/teman-ngoding-status \
     | install_stdin 755 /usr/local/bin/teman-ngoding-status
@@ -96,7 +96,19 @@ $SUDO systemctl daemon-reload
 $SUDO systemctl enable --now teman-ngoding-status.timer
 $SUDO systemctl start teman-ngoding-status.service || true
 
-echo "==> Terminal Teman Ngoding (Ptyxis, tema per jendela)"
+echo "==> CLI AI untuk root (versi terbaru)"
+# Claude Code, Antigravity CLI, Codex CLI, OpenCode, DeepSeek Harness. Yang sudah ada dilewati;
+# UPDATE_CLIS=1 ./install.sh menaikkan semuanya ke versi terbaru, SKIP_CLIS=1 melewati langkah ini.
+if [ "${SKIP_CLIS:-0}" = 1 ]; then
+    echo "   Dilewati (SKIP_CLIS=1)."
+else
+    cli_args=()
+    [ "${UPDATE_CLIS:-0}" = 1 ] && cli_args+=(--update)
+    $SUDO /usr/local/bin/teman-ngoding-install-cli "${cli_args[@]}" \
+        || echo "   Sebagian CLI belum terpasang; akan ditawarkan lagi saat dibuka." >&2
+fi
+
+echo "==> Terminal Teman Ngoding (Ptyxis, tema & judul per tab, pilih CLI di tab baru)"
 # Dibangun dari terminal/ dan dipasang terpisah dari Ptyxis bawaan (app-id & setting sendiri).
 # Dilewati kalau source-nya belum berubah sejak build terakhir.
 TERM_PREFIX=/usr/local/lib/teman-ngoding/terminal
