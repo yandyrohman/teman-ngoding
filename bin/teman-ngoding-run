@@ -45,6 +45,12 @@ case "$agent" in
 esac
 [ -n "$envfile" ] && with_env=(bash -c 'set -a; [ -r "$ENVFILE" ] && . "$ENVFILE"; set +a; exec "$0" "$@"')
 
+# Claude in Chrome: ekstensinya ada di Chrome milik user, bukan root. Tautkan dulu
+# supaya Claude Code (root) mendeteksinya; lihat lib/link-user-chrome.
+if [ "$agent" = claude ]; then
+    with_env=(bash -c '/usr/local/lib/teman-ngoding/link-user-chrome; exec "$0" "$@"')
+fi
+
 sudo env \
     IS_SANDBOX=1 \
     HOME=/root \

@@ -85,7 +85,9 @@ sed "s|('yandi', '/home/yandi')|('$TARGET_USER', '$TARGET_HOME')|" bin/teman-ngo
 $SUDO install -d -m 755 /usr/local/lib/teman-ngoding/bin
 sed "s|:-yandi}|:-$TARGET_USER}|" lib/open-in-user-chrome \
     | install_stdin 755 /usr/local/lib/teman-ngoding/open-in-user-chrome
-for name in sensible-browser www-browser x-www-browser xdg-open; do
+sed "s|:-yandi}|:-$TARGET_USER}|" lib/link-user-chrome \
+    | install_stdin 755 /usr/local/lib/teman-ngoding/link-user-chrome
+for name in sensible-browser www-browser x-www-browser xdg-open google-chrome google-chrome-stable; do
     $SUDO ln -sf ../open-in-user-chrome "/usr/local/lib/teman-ngoding/bin/$name"
 done
 $SUDO install -m 644 systemd/teman-ngoding-status.service systemd/teman-ngoding-status.timer /etc/systemd/system/

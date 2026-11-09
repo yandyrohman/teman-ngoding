@@ -1,0 +1,30 @@
+#!/bin/bash
+# Dipanggil (sebagai root) oleh teman-ngoding-run sebelum Claude Code jalan.
+# Claude Code mendeteksi ekstensi "Claude in Chrome" dari profil browser di $HOME (= /root),
+# padahal Chrome dan ekstensinya milik user desktop. Script ini menautkan folder ekstensi
+# dari profil user ke profil root supaya Claude menganggap ekstensinya terpasang.
+# Koneksinya sendiri lewat bridge claude.ai (akun yang sama), jadi cukup tautan ini.
+user="${TEMAN_NGODING_USER:-yandi}"
+home="$(getent passwd "$user" | cut -d: -f6)"
+[ -n "$home" ] && [ "$home" != /root ] || exit 0
+
+ext_id=fcoeoabgfenejglbffodgkkbkcdhcgfn
+# Daftar folder browser yang diperiksa Claude Code di Linux
+for dir in google-chrome chromium BraveSoftware/Brave-Browser microsoft-edge vivaldi opera; do
+    for src in "$home/.config/$dir"/{Default,Profile\ *}/Extensions/"$ext_id"; do
+        [ -d "$src" ] || continue
+        profile="$(basename "$(dirname "$(dirname "$src")")")"
+        dst="/root/.config/$dir/$profile/Extensions/$ext_id"
+        [ -e "$dst" ] && continue
+        mkdir -p "$(dirname "$dst")"
+        ln -sfn "$src" "$dst"
+    done
+done
+
+# Jalur lama (native messaging): native host berjalan sebagai user dan membuat socket di
+# /tmp/claude-mcp-browser-bridge-<user>, sedangkan Claude root mencarinya di ...-root.
+bridge=/tmp/claude-mcp-browser-bridge-root
+if [ ! -e "$bridge" ] && [ ! -L "$bridge" ]; then
+    ln -s "/tmp/claude-mcp-browser-bridge-$user" "$bridge"
+fi
+exit 0

@@ -1,6 +1,7 @@
 #!/bin/bash
 # Dipanggil (sebagai root) oleh CLI (claude, gemini, codex, opencode, dsh) untuk membuka URL login.
 # Membuka URL di Chrome milik user desktop, bukan sebagai root.
+# Juga dipasang sebagai `google-chrome` di PATH CLI: Claude in Chrome membuka tab lewat perintah itu.
 url="$1"
 user="${TEMAN_NGODING_USER:-yandi}"
 uid="$(id -u "$user")"
@@ -9,4 +10,4 @@ exec runuser -u "$user" -- env \
     WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}" \
     DISPLAY="${DISPLAY:-:0}" \
     DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
-    google-chrome --new-window "$url" >/dev/null 2>&1 &
+    /usr/bin/google-chrome --new-window "$url" >/dev/null 2>&1 &
