@@ -77,7 +77,7 @@ need_npm() {
 install_agent() {
     case "$1" in
         # "latest" = rilis terbaru (bukan kanal stable yang tertinggal sekitar seminggu)
-        claude) need_curl && curl -fsSL https://claude.ai/install.sh | bash -s latest ;;
+        claude) need_curl && curl -fsSL https://claude.ai/install.sh | CLAUDE_INSTALL_ALLOW_SUDO=1 bash -s latest ;;
         gemini) need_curl && curl -fsSL https://antigravity.google/cli/install.sh | bash ;;
         codex) need_npm && npm install -g @openai/codex@latest ;;
         opencode) need_npm && npm install -g opencode-ai@latest ;;
