@@ -53,6 +53,17 @@ if [ "$agent" = claude ]; then
     with_env=(bash -c '/usr/local/lib/teman-ngoding/link-user-chrome; exec "$0" "$@"')
 fi
 
+# Codex membaca warna latar terminal sekali saat mulai lalu menyimpannya; kotak input &
+# pesan user diwarnai turunan warna itu (truecolor). Kalau tema tab diganti setelahnya,
+# warnanya tetap dari tema lama (mis. ungu Ubuntu). Dengan 16 warna ANSI, Codex tidak
+# memberi latar sendiri dan semua warnanya memakai palette tema, jadi ikut berganti.
+colorterm="${COLORTERM:-truecolor}"
+term="${TERM:-xterm-256color}"
+if [ "$agent" = codex ]; then
+    colorterm=
+    term=xterm
+fi
+
 sudo env \
     IS_SANDBOX=1 \
     HOME=/root \
@@ -60,8 +71,8 @@ sudo env \
     BROWSER=/usr/local/lib/teman-ngoding/open-in-user-chrome \
     TEMAN_NGODING_USER="$USER" \
     WAYLAND_DISPLAY="$WAYLAND_DISPLAY" DISPLAY="$DISPLAY" \
-    COLORTERM="${COLORTERM:-truecolor}" \
-    TERM="${TERM:-xterm-256color}" \
+    COLORTERM="$colorterm" \
+    TERM="$term" \
     ENVFILE="$envfile" \
     "${with_env[@]}" "$bin" "$@"
 status=$?

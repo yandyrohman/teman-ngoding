@@ -56,6 +56,8 @@ semua file disalin apa adanya ke lokasi sistem.
   (`teman_ngoding_clis` di `ptyxis-window.c` + menu `new_cli_menu` di `ptyxis-window.ui`). Tambah karakter = ubah semua tempat itu.
 - Sisa limit (dan maskot tidur saat limit habis) hanya untuk Claude; karakter lain hanya menampilkan info akun.
 - Codex dibuka dengan `--approve-for-me` (mode Auto-review) di `teman-ngoding-run`, supaya tidak minta Enter tiap izin.
+- Codex dijalankan dengan `TERM=xterm` dan `COLORTERM` kosong (16 warna). Codex hanya membaca warna latar terminal
+  saat mulai; dalam truecolor kotak input/pesan user tetap memakai warna tema lama (ungu Ubuntu) setelah tema tab diganti.
 - **Jangan pernah commit** `.credentials.json`, `.claude.json`, `oauth_creds.json`, `auth.json`, `.env`, atau
   `status.json`. Token OAuth / API key hanya boleh dibaca oleh `teman-ngoding-status` (berjalan sebagai root) dan tidak boleh ditulis ke output.
 
