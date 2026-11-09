@@ -51,12 +51,27 @@
     <file>palettes/konsol-genggam.palette</file>
     <file>palettes/stabilo.palette</file>
     <file>palettes/jeruk.palette</file>
-    <file>palettes/kertas.palette</file>
+    <file>palettes/noir.palette</file>
     <file>palettes/sakura.palette</file>
     <file>palettes/lavender.palette</file>
     <file>palettes/langit.palette</file>
     <file>palettes/mint.palette</file>
-    <file>palettes/salju.palette</file>
+    <file>palettes/kamar-gelap.palette</file>
+    <file>palettes/lava.palette</file>
+    <file>palettes/racun.palette</file>
+    <file>palettes/senja.palette</file>
+    <file>palettes/arkade.palette</file>
+    <file>palettes/patina.palette</file>
+    <file>palettes/semangka.palette</file>
+    <file>palettes/tentara.palette</file>
+    <file>palettes/kunyit.palette</file>
+    <file>palettes/cabai.palette</file>
+    <file>palettes/tosca.palette</file>
+    <file>palettes/fuchsia.palette</file>
+    <file>palettes/pandan.palette</file>
+    <file>palettes/aurora.palette</file>
+    <file>palettes/miami.palette</file>
+    <file>palettes/batik.palette</file>
   </gresource>
 </gresources>
 
