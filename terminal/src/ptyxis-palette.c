@@ -36,6 +36,7 @@ typedef struct _PtyxisPaletteData
 {
   const char        *id;
   const char        *name;
+  int                order;
   PtyxisPaletteFace  faces[2];
 } PtyxisPaletteData;
 
@@ -159,6 +160,20 @@ ptyxis_get_user_palettes_dir (void)
   return g_build_filename (g_get_user_data_dir (), APP_ID, "palettes", NULL);
 }
 
+static int
+compare_palettes (gconstpointer a,
+                  gconstpointer b,
+                  gpointer      user_data)
+{
+  const PtyxisPaletteData *pa = PTYXIS_PALETTE ((gpointer)a)->palette;
+  const PtyxisPaletteData *pb = PTYXIS_PALETTE ((gpointer)b)->palette;
+
+  if (pa->order != pb->order)
+    return pa->order < pb->order ? GTK_ORDERING_SMALLER : GTK_ORDERING_LARGER;
+
+  return gtk_ordering_from_cmpfunc (g_utf8_collate (pa->name, pb->name));
+}
+
 GListModel *
 ptyxis_palette_get_all (void)
 {
@@ -195,7 +210,7 @@ ptyxis_palette_get_all (void)
         }
 
       instance = gtk_sort_list_model_new (G_LIST_MODEL (flatten),
-                                          GTK_SORTER (gtk_string_sorter_new (gtk_property_expression_new (PTYXIS_TYPE_PALETTE, NULL, "name"))));
+                                          GTK_SORTER (gtk_custom_sorter_new (compare_palettes, NULL, NULL)));
       g_object_add_weak_pointer (G_OBJECT (instance), (gpointer *)&instance);
     }
 
@@ -395,6 +410,12 @@ ptyxis_palette_load_info (const char         *path,
     }
 
   data->name = g_intern_string (name);
+
+  /* Teman Ngoding: Order= sets the position in the theme list (user palettes without it go last) */
+  if (g_key_file_has_key (key_file, "Palette", "Order", NULL))
+    data->order = g_key_file_get_integer (key_file, "Palette", "Order", NULL);
+  else
+    data->order = G_MAXINT;
 
   base = g_path_get_basename (path);
   if (!g_str_has_suffix (base, ".palette"))

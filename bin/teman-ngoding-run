@@ -12,7 +12,9 @@ shift
 case "$agent" in
     claude) bin=/root/.local/bin/claude; name="Claude Code" ;;
     gemini) bin=/root/.local/bin/agy; name="Antigravity CLI" ;;
-    codex) bin=codex; name="Codex CLI" ;;
+    # Codex langsung mode auto (seperti auto mode Claude Code): permintaan izin dinilai
+    # reviewer otomatis, bukan ditanyakan ke user satu per satu
+    codex) bin=codex; name="Codex CLI"; set -- --approve-for-me "$@" ;;
     opencode) bin=opencode; name="OpenCode" ;;
     deepseek) bin=dsh; name="DeepSeek Harness"; [ $# -eq 0 ] && set -- web ;;
     *) echo "Karakter tidak dikenal: $agent" >&2; exit 2 ;;

@@ -124,7 +124,7 @@ ptyxis_terminal_update_colors (PtyxisTerminal *self)
     dark = ptyxis_tab_get_dark (PTYXIS_TAB (tab));
 
   if (self->palette == NULL)
-    self->palette = ptyxis_palette_lookup ("gnome");
+    self->palette = ptyxis_palette_lookup ("ubuntu");
 
   face = ptyxis_palette_get_face (self->palette, dark);
 

@@ -55,6 +55,7 @@ semua file disalin apa adanya ke lokasi sistem.
   di kelas CSS `ngoding-theme-<id>` / `ngoding-chip-<id>`, dan di pemilih tab baru terminal
   (`teman_ngoding_clis` di `ptyxis-window.c` + menu `new_cli_menu` di `ptyxis-window.ui`). Tambah karakter = ubah semua tempat itu.
 - Sisa limit (dan maskot tidur saat limit habis) hanya untuk Claude; karakter lain hanya menampilkan info akun.
+- Codex dibuka dengan `--approve-for-me` (mode Auto-review) di `teman-ngoding-run`, supaya tidak minta Enter tiap izin.
 - **Jangan pernah commit** `.credentials.json`, `.claude.json`, `oauth_creds.json`, `auth.json`, `.env`, atau
   `status.json`. Token OAuth / API key hanya boleh dibaca oleh `teman-ngoding-status` (berjalan sebagai root) dan tidak boleh ditulis ke output.
 
@@ -91,6 +92,10 @@ terpisah. Dibangun dengan app-id/gschema `io.github.yandyrohman.TemanNgoding.Ter
 - Palette di Preferences memakai aksi `session.palette` → tab aktif jendela `transient-for` Preferences
   (di-set ulang tiap kali Preferences dibuka), bukan profil default.
 - `restore-session` default false (tiap klik = jendela bersih).
+- Tema: hanya 21 palette bawaan di `terminal/src/palettes/` (didaftarkan di `ptyxis.gresource.xml`), semuanya
+  `Primary=true`. Urutan daftar dari key `Order=` (bukan abjad; palette user tanpa `Order` di akhir).
+  Default `ubuntu` (gschema + fallback di `ptyxis-profile.c`/`ptyxis-terminal.c`). Tema baru harus beda
+  jelas warna latarnya dari yang sudah ada.
 - `install.sh` hanya rebuild kalau hash isi `terminal/` berubah (`.source-hash` di prefix).
 - Upgrade upstream: ganti isi `terminal/` dengan tag baru, lalu terapkan ulang `git diff ce6c5a7 -- terminal/`.
 - Tes UI tanpa memasang: build ke prefix sementara (`meson configure --prefix=…` lalu `meson install`), jalankan

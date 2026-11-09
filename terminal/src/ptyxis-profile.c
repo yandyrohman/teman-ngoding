@@ -445,7 +445,7 @@ ptyxis_profile_set_property (GObject      *object,
         g_autoptr(PtyxisPalette) palette = ptyxis_palette_lookup (id);
 
         if (palette == NULL)
-          palette = ptyxis_palette_lookup ("gnome");
+          palette = ptyxis_palette_lookup ("ubuntu");
 
         ptyxis_profile_set_palette (self, palette);
       }
@@ -918,7 +918,7 @@ void
 ptyxis_profile_set_palette (PtyxisProfile *self,
                             PtyxisPalette *palette)
 {
-  const char *id = "gnome";
+  const char *id = "ubuntu";
 
   g_return_if_fail (PTYXIS_IS_PROFILE (self));
   g_return_if_fail (!palette || PTYXIS_IS_PALETTE (palette));

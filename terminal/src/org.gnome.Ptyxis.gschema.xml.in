@@ -342,7 +342,7 @@
     </key>
 
     <key name="palette" type="s">
-      <default>'gnome'</default>
+      <default>'ubuntu'</default>
       <summary>Palette</summary>
       <description>The color palette to use for the profile, by name</description>
     </key>

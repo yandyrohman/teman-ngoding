@@ -1,0 +1,23 @@
+[Palette]
+Name=DOS Biru
+Order=4
+Primary=true
+Background=#0000AA
+Foreground=#FFFF55
+Cursor=#FFFF55
+Color0=#000000
+Color1=#AA0000
+Color2=#00AA00
+Color3=#AA5500
+Color4=#5F87FF
+Color5=#AA00AA
+Color6=#00AAAA
+Color7=#AAAAAA
+Color8=#555555
+Color9=#FF5555
+Color10=#55FF55
+Color11=#FFFF55
+Color12=#7FAAFF
+Color13=#FF55FF
+Color14=#55FFFF
+Color15=#FFFFFF
