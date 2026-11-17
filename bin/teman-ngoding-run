@@ -11,8 +11,8 @@ shift
 
 case "$agent" in
     claude) bin=/root/.local/bin/claude; name="Claude Code" ;;
-    # Antigravity langsung Auto mode: perintah dinilai reviewer otomatis, tidak ditanya satu per satu
-    gemini) bin=/root/.local/bin/agy; name="Antigravity CLI"; set -- --mode auto "$@" ;;
+    # Antigravity tanpa tanya izin sama sekali (permintaan user: laptop pribadi)
+    gemini) bin=/root/.local/bin/agy; name="Antigravity CLI"; set -- --dangerously-skip-permissions "$@" ;;
     # Codex langsung mode auto (seperti auto mode Claude Code): permintaan izin dinilai
     # reviewer otomatis, bukan ditanyakan ke user satu per satu
     codex) bin=codex; name="Codex CLI"; set -- --approve-for-me "$@" ;;
